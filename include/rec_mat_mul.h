@@ -1,3 +1,6 @@
+#ifndef _REC_MAT_MUL_H
+#define _REC_MAT_MUL_H
+
 #include <iostream>
 #include <vector>
 #include <thread>
@@ -7,41 +10,49 @@
 #include <stdint.h>
 
 using namespace std;
+typedef std::vector<std::vector<uint64_t> > Matrix;
 
-typedef std::vector<std::vector<uint64_t> >
-        (*tasklet)(std::vector<std::vector<uint64_t> > ,
-                   std::vector<std::vector<uint64_t> > , int);
+typedef void (*tasklet)(Matrix , Matrix , Matrix , int, int);
 
-std::vector<std::vector<uint64_t> > 
-    print(std::vector<std::vector<uint64_t> > a1,
-          std::vector<std::vector<uint64_t> > a2, int n) {
-
-    std::vector<std::vector<uint64_t> > res;
+void print(Matrix a1, Matrix a2, Matrix a3, int n, int id) {
     for(int i = 0; i<4; ++i) {
         for(int j = 0; j<4; ++j) {
             std::cout << a1[i][j]<<" ";
         }
         std::cout << "\n";
     }
-    return res;
 }
 
 typedef struct tasklet_desc {
-  std::vector<std::vector<uint64_t> >* X_;
-  std::vector<std::vector<uint64_t> >* Y_;
-  std::vector<std::vector<uint64_t> >* Z_;
+  Matrix* X_;
+  Matrix* Y_;
+  Matrix* Z_;
   int n_;
 } tasklet_desc;
 
 typedef struct work {
     tasklet t_;
     tasklet_desc td_;
+
+    void set_work(tasklet t, Matrix* x, Matrix* y, Matrix* z, int n) {
+        t_ = t;
+        td_.X_ = x;
+        td_.Y_ = y;
+        td_.Z_ = z;
+        td_.n_ = n;
+    }
+
 } Work;
 
+
 typedef struct sync {
-    std::vector<std::vector<uint64_t> >* X_;
-    std::vector<std::vector<uint64_t> >* Y_;
-    std::vector<std::vector<uint64_t> >* Z_;
+    Matrix* X_;
+    Matrix* Y_;
+    Matrix* Z_11;
+    Matrix* Z_12;
+    Matrix* Z_21;
+    Matrix* Z_22;
+    int quad;
     int type_;
     int val_;
 } sync;
@@ -84,13 +95,18 @@ public:
     }
 
     void run() {
+	    int count = 0;
         while(1) {
             if(!d_.empty()) {
                 Work w = this->pop_back();
-                (*(w.t_))(*(w.td_.X_), *(w.td_.Y_), w.td_.n_);
-                return;
+                (*(w.t_))(*(w.td_.X_), *(w.td_.Y_), *(w.td_.Z_), w.td_.n_, id_);
             }
             else {
+			    return;
+			    ++count;
+				if(count == 200) {
+                    return;
+				}
                 // STEAL
             }
         }
@@ -106,31 +122,4 @@ private:
     int id_;
 };
 
-int main() {
-
-    std::vector<Task *> pool;
-
-    std::vector< std::vector<uint64_t> > A(4, std::vector<uint64_t>(4, 1)); 
-    std::vector< std::vector<uint64_t> > B(4, std::vector<uint64_t>(4, 2)); 
-    std::vector< std::vector<uint64_t> > Z(4, std::vector<uint64_t>(4, 0));
-
-    Work work;
-    work.t_ = &print;
-    work.td_.X_ = &A;
-    work.td_.Y_ = &B;
-    work.td_.Z_ = &Z;
-    work.td_.n_ = 4;
-
-    unsigned int num_threads = std::thread::hardware_concurrency();
-    for(int i = 0; i<num_threads; ++i) {
-        pool.push_back(new Task(i));
-    }
-    
-    // cilk spawn each thread in the pool
-    for(int i = 0; i<num_threads; ++i) {
-        pool[i]->push_back(work);
-        pool[i]->run();
-    }
-    
-    return 1;
-}
+#endif
