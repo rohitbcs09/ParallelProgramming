@@ -94,21 +94,21 @@ public:
     }
 
     void run() {
-	    int count = 0;
+        int count = 0;
         while(1) {
             if(!d_.empty()) {
-			    std::cout << "Inside Run : Popping Job" << "\n";
+                std::cout << "Inside Run : Popping Job" << "\n";
                 Work w = this->pop_back();
                 (*(w.t_))(*(w.td_.X_), *(w.td_.Y_), *(w.td_.Z_), w.td_.x_row,
                           w.td_.x_col, w.td_.y_row, w.td_.y_col, w.td_.z_row, 
-				          w.td_.z_col, w.td_.n_, id_);
+                          w.td_.z_col, w.td_.n_, id_);
             }
             else {
-			    ++count;
-				if(count == 20) {
-			        std::cout << "Inside Run : Steal Failure after 20 attempts" << "\n";
+                ++count;
+                if(count == 20) {
+                    std::cout << "Inside Run : Steal Failure after 20 attempts" << "\n";
                     return;
-				}
+                }
                 // STEAL
             }
         }

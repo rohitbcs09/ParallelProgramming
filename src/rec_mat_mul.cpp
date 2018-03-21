@@ -96,7 +96,7 @@ void Matrix_Multiply(Matrix &X, Matrix &Y, Matrix &Z, int x_row, int x_col,
         for(int j = 0; j<n; ++j) {
             for(int k = 0; k<n; ++k) {
                 Z[z_row + i][z_col + j] += 
-				    X[x_row + i][x_col + k] * Y[y_row + k][y_col + j];
+                    X[x_row + i][x_col + k] * Y[y_row + k][y_col + j];
             }
         }
     }
@@ -109,17 +109,17 @@ void init_work(Work *work, int size) {
         work[i].td_.X_ = &X;
         work[i].td_.Y_ = &Y;
         work[i].td_.Z_ = &Z;
-	}
+    }
 }
 
 void set_work(Work *work, int x_row, int x_col, int y_row, int y_col, int z_row, 
-	          int z_col, int n) {
-	work->td_.x_row = x_row;
-	work->td_.x_col = x_col;
-	work->td_.y_row = y_row;
-	work->td_.y_col = y_col;
-	work->td_.z_row = z_row;
-	work->td_.z_col = z_col;
+              int z_col, int n) {
+    work->td_.x_row = x_row;
+    work->td_.x_col = x_col;
+    work->td_.y_row = y_row;
+    work->td_.y_col = y_col;
+    work->td_.z_row = z_row;
+    work->td_.z_col = z_col;
     work->td_.n_ = n;
 }
 
@@ -131,27 +131,27 @@ void PAR_REC_MEM(Matrix &X, Matrix &Y, Matrix &Z, int x_row, int x_col,
     }
     else {
         Work *work = new Work[8];
-		init_work(work, 8);
-		set_work(&work[0], x_row, x_col, y_row, y_col, z_row, z_col, n/2);
-		set_work(&work[1], x_row, x_col, y_row, y_col + n/2, z_row, z_col + n/2, n/2);
-		set_work(&work[2], x_row + n/2, x_col, y_row, y_col, z_row + n/2, z_col, n/2);
-		set_work(&work[3], x_row + n/2, x_col, y_row, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
+        init_work(work, 8);
+        set_work(&work[0], x_row, x_col, y_row, y_col, z_row, z_col, n/2);
+        set_work(&work[1], x_row, x_col, y_row, y_col + n/2, z_row, z_col + n/2, n/2);
+        set_work(&work[2], x_row + n/2, x_col, y_row, y_col, z_row + n/2, z_col, n/2);
+        set_work(&work[3], x_row + n/2, x_col, y_row, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
         pool[id]->push_back(work[0]);
         pool[id]->push_back(work[1]);
         pool[id]->push_back(work[2]);
         pool[id]->push_back(work[3]);
 
         set_work(&work[4], x_row, x_col + n/2, y_row + n/2, y_col, z_row, z_col, n/2);
-		set_work(&work[5], x_row, x_col + n/2, y_row + n/2, y_col + n/2, z_row, z_col + n/2, n/2);
-		set_work(&work[6], x_row + n/2, x_col + n/2, y_row + n/2, y_col, z_row + n/2, z_col, n/2);
-		set_work(&work[7], x_row + n/2, x_col + n/2, y_row + n/2, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
+        set_work(&work[5], x_row, x_col + n/2, y_row + n/2, y_col + n/2, z_row, z_col + n/2, n/2);
+        set_work(&work[6], x_row + n/2, x_col + n/2, y_row + n/2, y_col, z_row + n/2, z_col, n/2);
+        set_work(&work[7], x_row + n/2, x_col + n/2, y_row + n/2, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
         pool[id]->push_back(work[4]);
         pool[id]->push_back(work[5]);
         pool[id]->push_back(work[6]);
         pool[id]->push_back(work[7]);
 
         /*
-		PAR_REC_MEM(X, Y, Z, x_row, x_col, y_row, y_col, z_row, z_col, n/2);
+        PAR_REC_MEM(X, Y, Z, x_row, x_col, y_row, y_col, z_row, z_col, n/2);
         PAR_REC_MEM(X, Y, Z, x_row, x_col, y_row, y_col + n/2, z_row, z_col + n/2, n/2);
         PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col, y_row, y_col, z_row + n/2, z_col, n/2);
         PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col, y_row, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
@@ -160,7 +160,7 @@ void PAR_REC_MEM(Matrix &X, Matrix &Y, Matrix &Z, int x_row, int x_col,
         PAR_REC_MEM(X, Y, Z, x_row, x_col + n/2, y_row + n/2, y_col + n/2, z_row, z_col + n/2, n/2);
         PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col + n/2, y_row + n/2, y_col, z_row + n/2, z_col, n/2);
         PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col + n/2, y_row + n/2, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
-		*/
+        */
     }
 }
 
@@ -178,7 +178,7 @@ int main() {
     set_work(&work, 0, 0, 0, 0, 0, 0, 8);
 
     unsigned int num_threads = std::thread::hardware_concurrency();
-	int i = 0;
+    int i = 0;
     for(; i<num_threads; ++i) {
         pool.push_back(new Task(i));
     }
@@ -191,5 +191,5 @@ int main() {
 
     printMatrix(Z, 8);
     
-	return 1;
+    return 1;
 }
