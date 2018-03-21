@@ -10,19 +10,22 @@ FAST RANDOM NUMBER GENERATOR:
 
 */
 
-#define ROWS 4 
-#define COLS 4 
+#define ROWS 8 
+#define COLS 8 
 
 // Input Matrices
-Matrix A(ROWS, std::vector<uint64_t>(COLS, 0));
-Matrix B(ROWS, std::vector<uint64_t>(COLS, 0));
-Matrix T(ROWS, std::vector<uint64_t>(COLS, 0));
+Matrix X(ROWS, std::vector<uint64_t>(COLS, 0));
+Matrix Y(ROWS, std::vector<uint64_t>(COLS, 0));
+Matrix Z(ROWS, std::vector<uint64_t>(COLS, 0));
 
 // Thread Pool 
 std::vector<Task *> pool;
 
 uint64_t g_seed = time(0);
 
+void PAR_REC_MEM(Matrix &X, Matrix &Y, Matrix &Z, int x_row, int x_col, 
+                 int y_row, int y_col, int z_row, int z_col, int n, int id);
+ 
 static inline uint64_t fastrand() { 
   g_seed = (214013 * g_seed + 2531011); 
   return (g_seed>>16) & 0x7FFF; 
@@ -86,121 +89,93 @@ static inline void SUM_MATRIX(Matrix &Z,
     }
 }
 
-void Matrix_Multiply(Matrix &X, Matrix &Y, Matrix &Z, int n) {
+void Matrix_Multiply(Matrix &X, Matrix &Y, Matrix &Z, int x_row, int x_col, 
+                     int y_row, int y_col, int z_row, int z_col, int n) {
+
     for(int i = 0; i<n; ++i){
         for(int j = 0; j<n; ++j) {
-            Z[i][j] = 0;
             for(int k = 0; k<n; ++k) {
-                Z[i][j] += X[i][k] * Y[k][j];
+                Z[z_row + i][z_col + j] += 
+				    X[x_row + i][x_col + k] * Y[y_row + k][y_col + j];
             }
         }
     }
 }
 
-void PAR_REC_MEM(Matrix X, Matrix Y, Matrix Z, int n, int id) {
+
+void init_work(Work *work, int size) {
+    for(int i = 0; i< size; ++i){
+        work[i].t_ = &PAR_REC_MEM;
+        work[i].td_.X_ = &X;
+        work[i].td_.Y_ = &Y;
+        work[i].td_.Z_ = &Z;
+	}
+}
+
+void set_work(Work *work, int x_row, int x_col, int y_row, int y_col, int z_row, 
+	          int z_col, int n) {
+	work->td_.x_row = x_row;
+	work->td_.x_col = x_col;
+	work->td_.y_row = y_row;
+	work->td_.y_col = y_col;
+	work->td_.z_row = z_row;
+	work->td_.z_col = z_col;
+    work->td_.n_ = n;
+}
+
+void PAR_REC_MEM(Matrix &X, Matrix &Y, Matrix &Z, int x_row, int x_col, 
+                 int y_row, int y_col, int z_row, int z_col, int n, int id) {
         
     if(n == 1) {
-        //Matrix_Multiply(X, Y, Z, n);
-	    std::cout << "Base Case " << "\n";
-
+        Matrix_Multiply(X, Y, Z, x_row, x_col, y_row, y_col, z_row, z_col, n);
     }
     else {
-	    std::cout << "Inside Rec function " << "\n";
-        Matrix X_11(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix X_12(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix X_21(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix X_22(n/2, std::vector<uint64_t>(n/2,0));
+        Work *work = new Work[8];
+		init_work(work, 8);
+		set_work(&work[0], x_row, x_col, y_row, y_col, z_row, z_col, n/2);
+		set_work(&work[1], x_row, x_col, y_row, y_col + n/2, z_row, z_col + n/2, n/2);
+		set_work(&work[2], x_row + n/2, x_col, y_row, y_col, z_row + n/2, z_col, n/2);
+		set_work(&work[3], x_row + n/2, x_col, y_row, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
+        pool[id]->push_back(work[0]);
+        pool[id]->push_back(work[1]);
+        pool[id]->push_back(work[2]);
+        pool[id]->push_back(work[3]);
 
-        Matrix Y_11(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix Y_12(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix Y_21(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix Y_22(n/2, std::vector<uint64_t>(n/2,0));
+        set_work(&work[4], x_row, x_col + n/2, y_row + n/2, y_col, z_row, z_col, n/2);
+		set_work(&work[5], x_row, x_col + n/2, y_row + n/2, y_col + n/2, z_row, z_col + n/2, n/2);
+		set_work(&work[6], x_row + n/2, x_col + n/2, y_row + n/2, y_col, z_row + n/2, z_col, n/2);
+		set_work(&work[7], x_row + n/2, x_col + n/2, y_row + n/2, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
+        pool[id]->push_back(work[4]);
+        pool[id]->push_back(work[5]);
+        pool[id]->push_back(work[6]);
+        pool[id]->push_back(work[7]);
 
-        Matrix Z_11(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix Z_12(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix Z_21(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix Z_22(n/2, std::vector<uint64_t>(n/2,0));
+        /*
+		PAR_REC_MEM(X, Y, Z, x_row, x_col, y_row, y_col, z_row, z_col, n/2);
+        PAR_REC_MEM(X, Y, Z, x_row, x_col, y_row, y_col + n/2, z_row, z_col + n/2, n/2);
+        PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col, y_row, y_col, z_row + n/2, z_col, n/2);
+        PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col, y_row, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
 
-        Matrix T_11(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix T_12(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix T_21(n/2, std::vector<uint64_t>(n/2,0));
-        Matrix T_22(n/2, std::vector<uint64_t>(n/2,0));
-
-        // Creating sub-matrix of X
-        COPY_SUB_MATRIX(X_11, X, 0, n/2, 0, n/2);
-        COPY_SUB_MATRIX(X_12, X, 0, n/2, n/2, n);
-        COPY_SUB_MATRIX(X_21, X, n/2, n, 0, n/2);
-        COPY_SUB_MATRIX(X_22, X, n/2, n, n/2, n);
-        
-        // Creating sub-matrix of Y 
-        COPY_SUB_MATRIX(Y_11, Y, 0, n/2, 0, n/2);
-        COPY_SUB_MATRIX(Y_12, Y, 0, n/2, n/2, n);
-        COPY_SUB_MATRIX(Y_21, Y, n/2, n, 0, n/2);
-        COPY_SUB_MATRIX(Y_22, Y, n/2, n, n/2, n);
-       
-		/*Work top_work[4];
-
-		top_work[0].set_work(&PAR_REC_MEM, &X_11, &Y_11, &Z_11, n/2);
-		top_work[1].set_work(&PAR_REC_MEM, &X_12, &Y_12, &Z_12, n/2);
-		top_work[2].set_work(&PAR_REC_MEM, &X_21, &Y_21, &Z_21, n/2);
-		top_work[3].set_work(&PAR_REC_MEM, &X_21, &Y_12, &Z_22, n/2);*/
-
-        Work work;
-        work.t_ = &PAR_REC_MEM;
-        work.td_.X_ = &A;
-        work.td_.Y_ = &B;
-        work.td_.Z_ = &T;
-        work.td_.n_ = n/2;
-        pool[id]->push_back(work);
-        pool[id]->push_back(work);
-        pool[id]->push_back(work);
-        pool[id]->push_back(work);
-
-        //PAR_REC_MEM(X_21, Y_12, Z_22, n/2, id);
-
-        // sync 1 
-
-		/*Work bottom_work[4];
-		bottom_work[0].set_work(&PAR_REC_MEM, &X_12, &Y_21, &T_11, n/2);
-		bottom_work[1].set_work(&PAR_REC_MEM, &X_12, &Y_22, &T_12, n/2);
-		bottom_work[2].set_work(&PAR_REC_MEM, &X_22, &Y_21, &T_21, n/2);
-		bottom_work[3].set_work(&PAR_REC_MEM, &X_22, &Y_22, &T_22, n/2);*/
-        pool[id]->push_back(work);
-        pool[id]->push_back(work);
-        pool[id]->push_back(work);
-        pool[id]->push_back(work);
-
-        //PAR_REC_MEM(X_22, Y_22, T_22, n/2, id);
-
-        // sync 2
-
-        SUM_SUB_MATRIX(Z, Z_11, 0, n/2, 0, n/2);
-        SUM_SUB_MATRIX(Z, Z_12, 0, n/2, n/2, n);
-        SUM_SUB_MATRIX(Z, Z_21, n/2, n, 0, n/2);
-        SUM_SUB_MATRIX(Z, Z_22, n/2, n, n/2, n);
-
-        SUM_SUB_MATRIX(Z, T_11, 0, n/2, 0, n/2);
-        SUM_SUB_MATRIX(Z, T_12, 0, n/2, n/2, n);
-        SUM_SUB_MATRIX(Z, T_21, n/2, n, 0, n/2);
-        SUM_SUB_MATRIX(Z, T_22, n/2, n, n/2, n);
+        PAR_REC_MEM(X, Y, Z, x_row, x_col + n/2, y_row + n/2, y_col, z_row, z_col, n/2);
+        PAR_REC_MEM(X, Y, Z, x_row, x_col + n/2, y_row + n/2, y_col + n/2, z_row, z_col + n/2, n/2);
+        PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col + n/2, y_row + n/2, y_col, z_row + n/2, z_col, n/2);
+        PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col + n/2, y_row + n/2, y_col + n/2, z_row + n/2, z_col + n/2, n/2);
+		*/
     }
 }
 
 int main() {
 
-    fillMatrix(A);
-    fillMatrix(B);
+    fillMatrix(X);
+    fillMatrix(Y);
 
     // Print matrix
-    printMatrix(A, 4);
-    printMatrix(B, 4);
+    printMatrix(X, 8);
+    printMatrix(Y, 8);
     
     Work work;
-    work.t_ = &PAR_REC_MEM;
-    work.td_.X_ = &A;
-    work.td_.Y_ = &B;
-    work.td_.Z_ = &T;
-    work.td_.n_ = 4;
+    init_work(&work, 1);
+    set_work(&work, 0, 0, 0, 0, 0, 0, 8);
 
     unsigned int num_threads = std::thread::hardware_concurrency();
 	int i = 0;
@@ -214,7 +189,7 @@ int main() {
         pool[i]->run();
     }
 
-    printMatrix(T, 4);
+    printMatrix(Z, 8);
     
 	return 1;
 }

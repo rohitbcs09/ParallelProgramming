@@ -12,9 +12,11 @@
 using namespace std;
 typedef std::vector<std::vector<uint64_t> > Matrix;
 
-typedef void (*tasklet)(Matrix , Matrix , Matrix , int, int);
+typedef void (*tasklet)(Matrix& , Matrix& , Matrix& , int, int, int, int, int, 
+                        int, int, int);
 
-void print(Matrix a1, Matrix a2, Matrix a3, int n, int id) {
+void print(Matrix& a1, Matrix& a2, Matrix& a3, int x_row, int x_col, int y_row, 
+           int y_col, int z_row, int z_col, int n, int id) {
     for(int i = 0; i<4; ++i) {
         for(int j = 0; j<4; ++j) {
             std::cout << a1[i][j]<<" ";
@@ -27,21 +29,18 @@ typedef struct tasklet_desc {
   Matrix* X_;
   Matrix* Y_;
   Matrix* Z_;
+  int x_row;
+  int x_col;
+  int y_row;
+  int y_col;
+  int z_row;
+  int z_col;
   int n_;
 } tasklet_desc;
 
 typedef struct work {
     tasklet t_;
     tasklet_desc td_;
-
-    void set_work(tasklet t, Matrix* x, Matrix* y, Matrix* z, int n) {
-        t_ = t;
-        td_.X_ = x;
-        td_.Y_ = y;
-        td_.Z_ = z;
-        td_.n_ = n;
-    }
-
 } Work;
 
 
@@ -100,7 +99,9 @@ public:
             if(!d_.empty()) {
 			    std::cout << "Inside Run : Popping Job" << "\n";
                 Work w = this->pop_back();
-                (*(w.t_))(*(w.td_.X_), *(w.td_.Y_), *(w.td_.Z_), w.td_.n_, id_);
+                (*(w.t_))(*(w.td_.X_), *(w.td_.Y_), *(w.td_.Z_), w.td_.x_row,
+                          w.td_.x_col, w.td_.y_row, w.td_.y_col, w.td_.z_row, 
+				          w.td_.z_col, w.td_.n_, id_);
             }
             else {
 			    ++count;
