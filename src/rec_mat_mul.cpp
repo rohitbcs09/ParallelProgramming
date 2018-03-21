@@ -100,9 +100,12 @@ void Matrix_Multiply(Matrix &X, Matrix &Y, Matrix &Z, int n) {
 void PAR_REC_MEM(Matrix X, Matrix Y, Matrix Z, int n, int id) {
         
     if(n == 1) {
-        Matrix_Multiply(X, Y, Z, n);
+        //Matrix_Multiply(X, Y, Z, n);
+	    std::cout << "Base Case " << "\n";
+
     }
     else {
+	    std::cout << "Inside Rec function " << "\n";
         Matrix X_11(n/2, std::vector<uint64_t>(n/2,0));
         Matrix X_12(n/2, std::vector<uint64_t>(n/2,0));
         Matrix X_21(n/2, std::vector<uint64_t>(n/2,0));
@@ -135,31 +138,39 @@ void PAR_REC_MEM(Matrix X, Matrix Y, Matrix Z, int n, int id) {
         COPY_SUB_MATRIX(Y_21, Y, n/2, n, 0, n/2);
         COPY_SUB_MATRIX(Y_22, Y, n/2, n, n/2, n);
        
-		Work *top_work = new Work[4];
-		top_work[0].set_work(&PAR_REC_MEM, &X_11, &Y_11, &Z_11, n);
-		top_work[1].set_work(&PAR_REC_MEM, &X_12, &Y_12, &Z_12, n);
-		top_work[2].set_work(&PAR_REC_MEM, &X_21, &Y_21, &Z_21, n);
-		//top_work[3].set_work(&PAR_REC_MEM, &X_21, &Y_12, &Z_22, n);
-        pool[id]->push_back(top_work[0]);
-        pool[id]->push_back(top_work[1]);
-        pool[id]->push_back(top_work[2]);
-        //pool[id]->push_back(top_work[3]);
+		/*Work top_work[4];
 
-        PAR_REC_MEM(X_21, Y_12, Z_22, n/2, id);
+		top_work[0].set_work(&PAR_REC_MEM, &X_11, &Y_11, &Z_11, n/2);
+		top_work[1].set_work(&PAR_REC_MEM, &X_12, &Y_12, &Z_12, n/2);
+		top_work[2].set_work(&PAR_REC_MEM, &X_21, &Y_21, &Z_21, n/2);
+		top_work[3].set_work(&PAR_REC_MEM, &X_21, &Y_12, &Z_22, n/2);*/
+
+        Work work;
+        work.t_ = &PAR_REC_MEM;
+        work.td_.X_ = &A;
+        work.td_.Y_ = &B;
+        work.td_.Z_ = &T;
+        work.td_.n_ = n/2;
+        pool[id]->push_back(work);
+        pool[id]->push_back(work);
+        pool[id]->push_back(work);
+        pool[id]->push_back(work);
+
+        //PAR_REC_MEM(X_21, Y_12, Z_22, n/2, id);
 
         // sync 1 
 
-		Work *bottom_work = new Work[4];
-		bottom_work[0].set_work(&PAR_REC_MEM, &X_12, &Y_21, &T_11, n);
-		bottom_work[1].set_work(&PAR_REC_MEM, &X_12, &Y_22, &T_12, n);
-		bottom_work[2].set_work(&PAR_REC_MEM, &X_22, &Y_21, &T_21, n);
-		//bottom_work[3].set_work(&PAR_REC_MEM, &X_22, &Y_22, &T_22, n);
-        pool[id]->push_back(bottom_work[0]);
-        pool[id]->push_back(bottom_work[1]);
-        pool[id]->push_back(bottom_work[2]);
-        //pool[id]->push_back(bottom_work[3]);
+		/*Work bottom_work[4];
+		bottom_work[0].set_work(&PAR_REC_MEM, &X_12, &Y_21, &T_11, n/2);
+		bottom_work[1].set_work(&PAR_REC_MEM, &X_12, &Y_22, &T_12, n/2);
+		bottom_work[2].set_work(&PAR_REC_MEM, &X_22, &Y_21, &T_21, n/2);
+		bottom_work[3].set_work(&PAR_REC_MEM, &X_22, &Y_22, &T_22, n/2);*/
+        pool[id]->push_back(work);
+        pool[id]->push_back(work);
+        pool[id]->push_back(work);
+        pool[id]->push_back(work);
 
-        PAR_REC_MEM(X_22, Y_22, T_22, n/2, id);
+        //PAR_REC_MEM(X_22, Y_22, T_22, n/2, id);
 
         // sync 2
 

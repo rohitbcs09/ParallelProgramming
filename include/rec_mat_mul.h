@@ -98,13 +98,14 @@ public:
 	    int count = 0;
         while(1) {
             if(!d_.empty()) {
+			    std::cout << "Inside Run : Popping Job" << "\n";
                 Work w = this->pop_back();
                 (*(w.t_))(*(w.td_.X_), *(w.td_.Y_), *(w.td_.Z_), w.td_.n_, id_);
             }
             else {
-			    return;
 			    ++count;
-				if(count == 200) {
+				if(count == 20) {
+			        std::cout << "Inside Run : Steal Failure after 20 attempts" << "\n";
                     return;
 				}
                 // STEAL
