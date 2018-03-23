@@ -2,15 +2,8 @@
 #include<stdlib.h>
 #include<limits.h>
 #include<time.h>
-#include <papi.h>
 
 #define msize 1024
-
-void handle_error(int err){
-    std::cerr << "PAPI error: " << err << std::endl;
-}
-
-
 
 int main() {
 
@@ -38,14 +31,6 @@ int main() {
         }
 
 
-	int numEvents = 3;
-        long long values[3];
-        int events[3] = {PAPI_L1_TCM,PAPI_L2_TCM,PAPI_L3_TCM};
-
-    	if (PAPI_start_counters(events, numEvents) != PAPI_OK) {
-            handle_error(1);
-    	}
-
 	//multiple the matrices
 	start = clock();
 	for ( i = 0; i < msize; i++) {
@@ -57,14 +42,7 @@ int main() {
 	}
 	end = clock();
 
-	if ( PAPI_stop_counters(values, numEvents) != PAPI_OK) {
-            handle_error(1);
-    	}
-
         cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 	std::cout << "CPU time used for ikj : " << cpu_time_used << std::endl;
-	std::cout<<"L1 misses: "<<values[0]<<std::endl;
-    	std::cout<<"L2 misses: "<<values[1]<<std::endl;
-    	std::cout<<"L3 misses: "<<values[2]<<std::endl;
 	return 0;
 }

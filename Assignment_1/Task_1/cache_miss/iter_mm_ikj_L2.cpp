@@ -2,8 +2,14 @@
 #include<stdlib.h>
 #include<limits.h>
 #include<time.h>
+#include <papi.h>
 
 #define msize 1024
+
+void handle_error(int err){
+    std::cerr << "PAPI error: " << err << std::endl;
+}
+
 
 
 int main() {
@@ -19,7 +25,7 @@ int main() {
             b[ind] = new int [msize];
             res[ind] = new int [msize];
         }
-
+	
 	clock_t start, end;
  	double cpu_time_used;
 	// make the two matrices.
@@ -32,19 +38,31 @@ int main() {
         }
 
 
+	int numEvents = 1;
+        long long values[1];
+        int events[1] = {PAPI_L2_TCM};
+
+    	if (PAPI_start_counters(events, numEvents) != PAPI_OK) {
+            handle_error(1);
+    	}
+
 	//multiple the matrices
 	start = clock();
-	for ( k = 0; k < msize; k++) {
-		for ( i = 0; i < msize; i++) {
+	for ( i = 0; i < msize; i++) {
+		for ( k = 0; k < msize; k++) {
 			for ( j = 0; j < msize; j++) {
 				res[i][j] = res[i][j] + a[i][k] * b[k][j];
 			}
 		}
 	}
 	end = clock();
-	
+
+	if ( PAPI_stop_counters(values, numEvents) != PAPI_OK) {
+            handle_error(1);
+    	}
 
         cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-	std::cout << "CPU time used for kij : " << cpu_time_used << std::endl;
+	std::cout << "CPU time used for ikj : " << cpu_time_used << std::endl;
+	std::cout<<"L2 misses: "<<values[0]<<std::endl;
 	return 0;
 }

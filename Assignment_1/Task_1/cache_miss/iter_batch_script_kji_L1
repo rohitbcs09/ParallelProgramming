@@ -8,4 +8,4 @@
 #SBATCH --mail-type=begin  # email me when the job starts
 #SBATCH --mail-type=end    # email me when the job finishes
 export CILK_NWORKERS=1
-ibrun ./a_ijk > a_ijk_output
+ibrun ./a_kji_L1 > output_a_kji_L1
