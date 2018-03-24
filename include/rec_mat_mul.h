@@ -11,6 +11,14 @@
 
 using namespace std;
 
+extern uint64_t g_seed;
+
+uint64_t fastrand() {
+  g_seed = (214013 * g_seed + 2531011); 
+  return (g_seed>>16) & 0x7FFF; 
+} 
+
+
 typedef std::vector<std::vector<uint64_t> > Matrix;
 
 typedef struct sync {
@@ -24,16 +32,12 @@ typedef struct sync {
     int z_col;
     int n;
     struct sync* parent;
-
-    sync(int type) {
-        type_ = type;
-        val_  = 4;
-    }
 } Sync;
 
-void set_sync_state(Sync* c_sync, Sync *p_sync, int type, int x1, int x2, int y1, int y2, int z1, int z2, int size) {
+Sync* create_sync_state(Sync *p_sync, int type, int x1, int x2, int y1, int y2, int z1, int z2, int size) {
+    Sync *c_sync = new Sync;
     c_sync->type_ = type;
-    c_sync->type_ = 4;
+    c_sync->val_ = 4;
     c_sync->x_row = x1;
     c_sync->x_col = x2;
     c_sync->y_row = y1;
@@ -42,6 +46,7 @@ void set_sync_state(Sync* c_sync, Sync *p_sync, int type, int x1, int x2, int y1
 	c_sync->z_col = z2;
 	c_sync->n = size;
 	c_sync->parent = p_sync;
+	return c_sync;
 }
 
 typedef void (*tasklet)(Matrix* , Matrix* , Matrix* , int, int, int, int, int, 
@@ -108,6 +113,9 @@ public:
 
     Work* pop_back() {
         std::unique_lock<std::mutex> lock(m_);
+		if(d_.size() == 0) {
+            return NULL;
+		}
         Work *ret = d_.back();
         d_.pop_back();
         return ret;
@@ -115,6 +123,9 @@ public:
 
     Work* pop_front() {
         std::unique_lock<std::mutex> lock(m_);
+		if(d_.size() == 0) {
+            return NULL;
+		}
         Work *ret = d_.front();
         d_.pop_front();
         return ret;
@@ -129,27 +140,31 @@ public:
 		    return;
 		}
         std::unique_lock<std::mutex> lock(s_m_);
-        s_.push(s);
+       st_.push(s);
     }
 
     Sync stack_top() {
         std::unique_lock<std::mutex> lock(s_m_);
-        Sync *ret = s_.top();
+        Sync *ret =st_.top();
         return *ret;
     }
 
     Sync* stack_top_ref() {
         std::unique_lock<std::mutex> lock(s_m_);
-        Sync *ret = s_.top();
+        Sync *ret =st_.top();
         return ret;
     }
 
-    void dec_sync_ref(Sync *s) {
+    Sync* dec_sync_ref(Sync *s) {
         std::unique_lock<std::mutex> lock(s_m_);
  	    if(s == NULL) {
-		    return;
+		    return NULL;
 		}
-        --s->val_; 
+        (s->val_)--; 
+		if(s->val_ == 0) {
+		   st_.pop();
+		}
+		return s;
     }
 
     bool is_sync_ref_zero(Sync *s) {
@@ -163,22 +178,24 @@ public:
     int get_sync_ref_count(Sync *s) {
         std::unique_lock<std::mutex> lock(s_m_);
  	    if(s == NULL) {
-		    return -1;
+		    return 0;
 		}
         return s->val_;
     }
 
     void pop_sync() {
         std::unique_lock<std::mutex> lock(s_m_);
-	    if(s_.size() == 0) {
+	    if(st_.size() == 0) {
 		    return;
 		}
-        s_.pop();
+       st_.pop();
     }
     
     bool is_stack_empty() {
-        return s_.size() == 0 ? true : false;
+        return st_.size() == 0 ? true : false;
     }
+
+    Work* steal_random_work();
 
     void run() {
         int count = 0;
@@ -192,10 +209,19 @@ public:
                           w->td_.z_col, w->td_.n_, w->sync_, id_);
             }
             else {
-                ++count;
-                if(count == 500) {
-                    std::cout << "Inside Run : Steal Failure after 20 attempts" << "\n";
-                    return;
+                Work *w = steal_random_work();
+				if(w != NULL) {
+                    (*(w->t_))(w->td_.X_, w->td_.Y_, w->td_.Z_, w->td_.x_row,
+                               w->td_.x_col, w->td_.y_row, w->td_.y_col, w->td_.z_row, 
+                               w->td_.z_col, w->td_.n_, w->sync_, id_);
+	                count = 0;
+			    }
+				else {
+                    ++count;
+                    if(count == 100) {
+                        std::cout << "Inside Run : Steal Failure after 20 attempts" << "\n";
+                        return;
+				    }
                 }
                 // STEAL
             }
@@ -205,7 +231,7 @@ public:
 
 private:
     std::deque<Work *> d_;
-    std::stack<Sync *> s_;
+    std::stack<Sync *> st_;
     std::mutex m_;
     std::mutex s_m_;
     bool is_started;

@@ -18,10 +18,13 @@ Matrix X(ROWS, std::vector<uint64_t>(COLS, 0));
 Matrix Y(ROWS, std::vector<uint64_t>(COLS, 0));
 Matrix Z(ROWS, std::vector<uint64_t>(COLS, 0));
 
+unsigned int num_threads = 1;
+
+uint64_t g_seed = time(0);
+
 // Thread Pool 
 std::vector<Task *> pool;
 
-uint64_t g_seed = time(0);
 
 void PAR_REC_MEM_BOTTOM_HALF(Matrix* X, Matrix* Y, Matrix* Z, int x_row, int x_col, 
                  int y_row, int y_col, int z_row, int z_col, int n, Sync* sync,
@@ -31,11 +34,6 @@ void PAR_REC_MEM(Matrix* X, Matrix* Y, Matrix* Z, int x_row, int x_col,
                  int y_row, int y_col, int z_row, int z_col, int n, Sync* sync,
 				 int id);
  
-static inline uint64_t fastrand() { 
-  g_seed = (214013 * g_seed + 2531011); 
-  return (g_seed>>16) & 0x7FFF; 
-} 
-
 void fillMatrix(Matrix &arr) {
     for(int i = 0; i<ROWS; ++i) {
         for(int j = 0; j<COLS; ++j) {
@@ -94,11 +92,9 @@ static inline void SUM_MATRIX(Matrix* Z, Matrix* T) {
 
 void Matrix_Multiply(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_col, 
                     int y_row, int y_col, int z_row, int z_col, int n) {
-	std::cout << "Here ";
     for(int i = 0; i<n; ++i){
         for(int j = 0; j<n; ++j) {
             for(int k = 0; k<n; ++k) {
-			    std::cout << " yes " ;
                 ((*Z)[z_row + i][z_col + j]) += 
                     ((*X)[x_row + i][x_col + k]) * ((*Y)[y_row + k][y_col + j]);
             }
@@ -160,24 +156,21 @@ void PAR_REC_MEM(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_col,
     }
     if(n == 1) {
         Matrix_Multiply(X, Y, Z, x_row, x_col, y_row, y_col, z_row, z_col, 1);
-        if(sync) {
-		    pool[id]->dec_sync_ref(sync);
-        }
-		if(sync != NULL && pool[id]->get_sync_ref_count(sync) == 0) {
-		    pool[id]->pop_sync();
+		pool[id]->dec_sync_ref(sync);
+		if(pool[id]->get_sync_ref_count(sync) == 0) {
+		    //pool[id]->pop_sync();
 			Sync* par = sync;
 			while(par != NULL) {
 		      	if(par->type_ == 1) {
 				    if(pool[id]->get_sync_ref_count(par) == 0 ){
-							Sync *new_sync = new Sync(2);
-							set_sync_state(new_sync, par, 2, par->x_row, par->x_col,
-								   par->y_row, par->y_col, par->z_row,
-								   par->z_col, par->n);
+							Sync *new_sync = create_sync_state(par, 2, par->x_row, par->x_col,
+								                               par->y_row, par->y_col, par->z_row,
+															   par->z_col, par->n);
 							pool[id]->push_sync(new_sync);
-							PAR_REC_MEM_BOTTOM_HALF(X, Y, Z, new_sync->x_row, new_sync->x_col, 
-		                                    new_sync->y_row, new_sync->y_col, new_sync->z_row,
-								        	new_sync->z_col, new_sync->n, new_sync, id);
-							pool[id]->dec_sync_ref(par);
+							PAR_REC_MEM_BOTTOM_HALF(X, Y, Z, par->x_row, par->x_col, 
+		                                    par->y_row, par->y_col, par->z_row,
+								        	par->z_col, par->n, new_sync, id);
+							//pool[id]->dec_sync_ref(par);
 							break;
 				   	}
 					else {
@@ -185,11 +178,19 @@ void PAR_REC_MEM(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_col,
 					}
 				}
 		      	else {
-				    if(par && pool[id]->get_sync_ref_count(par) == 0) {
+				    if(pool[id]->get_sync_ref_count(par) == 0) {
+						std::cout << "BEFORE PARENT :  " << par->val_ << " " << par <<"\n";
                         par = par->parent;
                         pool[id]->dec_sync_ref(par);
+                        //if(pool[id]->get_sync_ref_count(par) <= 0) {
+						//         pool[id]->pop_sync();
+								 //continue;
+					    std::cout << "AFTER PARENT :  " << par->val_ << " " << par << "\n";
+                                 //break;
+					    //}
 					}
 					else {
+                        //pool[id]->dec_sync_ref(par);
                         break;
 					}
 				}
@@ -197,9 +198,8 @@ void PAR_REC_MEM(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_col,
 	    }
 		return;
     }
-    else {
-		Sync* child_sync = new Sync(1);
-        set_sync_state(child_sync, sync, 1, x_row, x_col, y_row, y_col, z_row, z_col, n);
+    //else {
+		Sync* child_sync = create_sync_state(sync, 1, x_row, x_col, y_row, y_col, z_row, z_col, n);
         pool[id]->push_sync(child_sync);
 
         // pushing the work in Deque
@@ -211,7 +211,7 @@ void PAR_REC_MEM(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_col,
                                         z_row + n/2, z_col, n/2, child_sync));
         pool[id]->push_back(create_work(x_row + n/2, x_col, y_row, y_col + n/2, 
                                         z_row + n/2, z_col + n/2, n/2, child_sync));
-    }
+    //}
 }
 
 void PAR_REC_MEM_BOTTOM_HALF(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_col, 
@@ -239,6 +239,11 @@ void PAR_REC_MEM_BOTTOM_HALF(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_c
 	                    y_col + n/2, z_row + n/2, z_col + n/2, n/2, sync));
 }
 
+Work* Task::steal_random_work() {
+    int id = fastrand() % num_threads;
+    return pool[id]->pop_front();
+}
+
 
 int main() {
 
@@ -249,7 +254,7 @@ int main() {
     printMatrix(X, 8);
     printMatrix(Y, 8);
 
-    unsigned int num_threads = std::thread::hardware_concurrency();
+    num_threads = std::thread::hardware_concurrency();
     int i = 0;
     for(; i<num_threads; ++i) {
         pool.push_back(new Task(i));
