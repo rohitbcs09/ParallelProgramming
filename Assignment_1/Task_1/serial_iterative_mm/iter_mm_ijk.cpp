@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <time.h>
+#include <chrono>
 
 #define msize 1024
 
@@ -20,8 +21,6 @@ int main() {
 	    res[ind] = new int [msize];	
 	}
 
-	clock_t start, end;
- 	double cpu_time_used;
 	// make the two matrices.
 	for (i = 0; i < msize; i++ ) {
                 for (j = 0; j < msize; j++) {
@@ -31,7 +30,9 @@ int main() {
                 }
         }
 
-	start = clock();
+	using namespace std::chrono;
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();	
+
 	for ( i = 0; i < msize; i++) {
 		for ( j = 0; j < msize; j++) {
 			for ( k = 0; k < msize; k++) {
@@ -39,11 +40,11 @@ int main() {
 			}
 		}
 	}
-	end = clock();
 
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 
-        cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-	std::cout << "CPU time used for ijk : " << cpu_time_used << std::endl;
+        std::cout << "CPU time used for ijk : " << time_span.count() << std::endl;
 
 	return 0;
 }
