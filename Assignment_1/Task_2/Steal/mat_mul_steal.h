@@ -1,4 +1,4 @@
-#ifndef _MAT_MUL_STEALH
+#ifndef _MAT_MUL_STEAL_H
 #define _MAT_MUL_STEAL_H
 
 #include <iostream>
@@ -18,34 +18,33 @@ uint64_t fastrand() {
   return (g_seed>>16) & 0x7FFF; 
 } 
 
-
 typedef std::vector<std::vector<uint64_t> > Matrix;
 
 typedef struct sync {
-    int type_;
-    int val_;
-    int x_row;
-    int x_col;
-    int y_row;
-    int y_col;
-    int z_row;
-    int z_col;
-    int n;
-    struct sync* parent;
+    int s_type;
+    int s_val;
+    int s_x_row;
+    int s_x_col;
+    int s_y_row;
+    int s_y_col;
+    int s_z_row;
+    int s_z_col;
+    int s_n;
+    struct sync* s_parent;
 } Sync;
 
 Sync* create_sync_state(Sync *p_sync, int type, int x1, int x2, int y1, int y2, int z1, int z2, int size) {
     Sync *c_sync = new Sync;
-    c_sync->type_ = type;
-    c_sync->val_ = 4;
-    c_sync->x_row = x1;
-    c_sync->x_col = x2;
-    c_sync->y_row = y1;
-    c_sync->y_col = y2;
-	c_sync->z_row = z1;
-	c_sync->z_col = z2;
-	c_sync->n = size;
-	c_sync->parent = p_sync;
+    c_sync->s_type = type;
+    c_sync->s_val = 4;
+    c_sync->s_x_row = x1;
+    c_sync->s_x_col = x2;
+    c_sync->s_y_row = y1;
+    c_sync->s_y_col = y2;
+	c_sync->s_z_row = z1;
+	c_sync->s_z_col = z2;
+	c_sync->s_n = size;
+	c_sync->s_parent = p_sync;
 	return c_sync;
 }
 
@@ -63,22 +62,22 @@ void print(Matrix* a1, Matrix* a2, Matrix* a3, int x_row, int x_col, int y_row,
 }
 
 typedef struct tasklet_desc {
-  Matrix* X_;
-  Matrix* Y_;
-  Matrix* Z_;
-  int x_row;
-  int x_col;
-  int y_row;
-  int y_col;
-  int z_row;
-  int z_col;
-  int n_;
+  Matrix* t_X;
+  Matrix* t_Y;
+  Matrix* t_Z;
+  int t_x_row;
+  int t_x_col;
+  int t_y_row;
+  int t_y_col;
+  int t_z_row;
+  int t_z_col;
+  int t_n;
 } tasklet_desc;
 
 typedef struct work {
-    tasklet t_;
-    tasklet_desc td_;
-    Sync* sync_;
+    tasklet w_t;
+    tasklet_desc w_td;
+    Sync* w_sync;
 } Work;
 
 class Task { 
@@ -103,11 +102,18 @@ public:
 
     void push_front(Work* w) {
         std::unique_lock<std::mutex> lock(m_);
+        /*std::cout << "PUF: " << " x_row: " << w->w_td.t_x_row << " x_col: " << w->w_td.t_x_col
+                  << " y_row: " << w->w_td.t_y_row << " y_col: " << w->w_td.t_y_col << " z_row: "
+                  << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col << " size: " << w->w_td.t_n<< "\n"; */
         d_.push_front(w);
     }
 
     void push_back(Work* w) {
         std::unique_lock<std::mutex> lock(m_);
+        /*std::cout << "PUB: " << " x_row: " << w->w_td.t_x_row << " x_col: " << w->w_td.t_x_col
+                  << " y_row: " << w->w_td.t_y_row << " y_col: " << w->w_td.t_y_col << " z_row: "
+                  << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col << " size: " << w->w_td.t_n << "\n"; */
+       
         d_.push_back(w);
     }
 
@@ -116,9 +122,13 @@ public:
 		if(d_.size() == 0) {
             return NULL;
 		}
-        Work *ret = d_.back();
+        Work *w = d_.back();
+        /*std::cout << "POB: " << " x_row: " << w->w_td.t_x_row << " x_col: " << w->w_td.t_x_col
+                  << " y_row: " << w->w_td.t_y_row << " y_col: " << w->w_td.t_y_col << " z_row: "
+                  << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col << " size: " << w->w_td.t_n << "\n"; */
+       
         d_.pop_back();
-        return ret;
+        return w;
     }
 
     Work* pop_front() {
@@ -126,68 +136,111 @@ public:
 		if(d_.size() == 0) {
             return NULL;
 		}
-        Work *ret = d_.front();
+        Work *w = d_.front();
+        /*std::cout << "POF: " << " x_row: " << w->w_td.t_x_row << " x_col: " << w->w_td.t_x_col
+                  << " y_row: " << w->w_td.t_y_row << " y_col: " << w->w_td.t_y_col << " z_row: "
+                  << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col << " size: " << w->w_td.t_n << "\n"; */
         d_.pop_front();
-        return ret;
+        return w;
     }
 
     int get_deque_size() {
         return d_.size();
     }
     
-    void push_sync(Sync* s) {
-	    if(s == NULL) {
-		    return;
-		}
-        std::unique_lock<std::mutex> lock(s_m_);
-       st_.push(s);
+    void push_sync(Sync* sync) {
+       std::unique_lock<std::mutex> lock(s_m_);
+	   /*std::cout <<"PUS: "<< "SyncType: " << sync->s_type << " SyncVal: " << sync->s_val 
+	             << " x_r: " << sync->s_x_row << " x_c: " << sync->s_x_col  << " y_r: " << sync->s_y_row 
+				 << " y_c: " << sync->s_y_col <<  " z_r: " << sync->s_z_row << " z_c: " << sync->s_z_col 
+				 << " n: " << sync->s_n << "\n"; */
+       st_.push(sync);
     }
 
     Sync stack_top() {
         std::unique_lock<std::mutex> lock(s_m_);
-        Sync *ret =st_.top();
+        Sync *ret = st_.top();
+	    /*std::cout <<"ST : "<< "SyncType: " << ret->s_type << " SyncVal: " << ret->s_val
+	             << " x_r: " << ret->s_x_row << " x_c: " << ret->s_x_col  << " y_r: " << ret->s_y_row 
+				 << " y_c: " << ret->s_y_col <<  " z_r: " << ret->s_z_row << " z_c: " << ret->s_z_col 
+				 << " n: " << ret->s_n << "\n";*/
         return *ret;
     }
 
     Sync* stack_top_ref() {
         std::unique_lock<std::mutex> lock(s_m_);
         Sync *ret =st_.top();
+	    /*std::cout <<"STR: "<< "SyncType: " << ret->s_type << " SyncVal: " << ret->s_val
+                 << " x_r: " << ret->s_x_row << " x_c: " << ret->s_x_col  << " y_r: " << ret->s_y_row 
+			   	 << " y_c: " << ret->s_y_col <<  " z_r: " << ret->s_z_row << " z_c: " << ret->s_z_col 
+				 << " n: " << ret->s_n << "\n";*/
+
         return ret;
     }
 
-    Sync* dec_sync_ref(Sync *s) {
+    Sync* dec_sync_ref(Sync *sync) {
         std::unique_lock<std::mutex> lock(s_m_);
- 	    if(s == NULL) {
+ 	    if(sync == NULL) {
 		    return NULL;
 		}
-        (s->val_)--; 
-		if(s->val_ == 0) {
+	    /*std::cout <<"DSR: "<< "SyncType: " << sync->s_type << " SyncVal: " << sync->s_val
+	             << " x_r: " << sync->s_x_row << " x_c: " << sync->s_x_col  << " y_r: " << sync->s_y_row 
+				 << " y_c: " << sync->s_y_col <<  " z_r: " << sync->s_z_row << " z_c: " << sync->s_z_col 
+				 << " n: " << sync->s_n << "\n";*/
+        (sync->s_val)--; 
+		if(sync->s_val == 0) {
+	       /*std::cout <<"POS: "<< "SyncType: " << sync->s_type << " SyncVal: " << sync->s_val
+	             << " x_r: " << sync->s_x_row << " x_c: " << sync->s_x_col  << " y_r: " << sync->s_y_row 
+				 << " y_c: " << sync->s_y_col <<  " z_r: " << sync->s_z_row << " z_c: " << sync->s_z_col 
+				 << " n: " << sync->s_n << "\n";*/
+    
 		   st_.pop();
 		}
-		return s;
+		return sync;
     }
 
-    bool is_sync_ref_zero(Sync *s) {
+    bool is_sync_ref_zero(Sync *sync) {
  	    std::unique_lock<std::mutex> lock(s_m_);
-        if(s == NULL) {
-		    return false;
+        if(sync == NULL) {
+		    return true;
 		}
-        return (s->val_ == 0) ? true : false; 
+	    /*std::cout <<"ISR: "<< "SyncType: " << sync->s_type << " SyncVal: " << sync->s_val
+	             << " x_r: " << sync->s_x_row << " x_c: " << sync->s_x_col  << " y_r: " << sync->s_y_row 
+				 << " y_c: " << sync->s_y_col <<  " z_r: " << sync->s_z_row << " z_c: " << sync->s_z_col 
+				 << " n: " << sync->s_n << "\n";*/
+        return (sync->s_val == 0) ? true : false; 
     }
    
-    int get_sync_ref_count(Sync *s) {
+    int get_sync_ref_count(Sync *sync) {
         std::unique_lock<std::mutex> lock(s_m_);
- 	    if(s == NULL) {
+ 	    if(sync == NULL) {
 		    return 0;
 		}
-        return s->val_;
+	    /*std::cout <<"GSR: "<< "SyncType: " << sync->s_type << " SyncVal: " << sync->s_val 
+	             << " x_r: " << sync->s_x_row << " x_c: " << sync->s_x_col  << " y_r: " << sync->s_y_row 
+				 << " y_c: " << sync->s_y_col <<  " z_r: " << sync->s_z_row << " z_c: " << sync->s_z_col 
+				 << " n: " << sync->s_n << "\n";*/
+ 
+        return sync->s_val;
     }
 
     void pop_sync() {
-        std::unique_lock<std::mutex> lock(s_m_);
-	    if(st_.size() == 0) {
-		    return;
-		}
+       std::unique_lock<std::mutex> lock(s_m_);
+	   Sync *top = st_.top();
+	   if(top) {}
+	       /*std::cout <<"POS: "<< "SyncType: " << top->s_type << " SyncVal: " << top->s_val 
+	             << " x_r: " << top->s_x_row << " x_c: " << top->s_x_col  << " y_r: " << top->s_y_row 
+				 << " y_c: " << top->s_y_col <<  " z_r: " << top->s_z_row << " z_c: " << top->s_z_col 
+				 << " n: " << top->s_n << "\n";*/
+ 
+
+	   else {}
+	      /* std::cout <<"POS: "<< "SyncType: " << -1 << " SyncVal: " << -1
+	             << " x_r: " << top->s_x_row << " x_c: " << top->s_x_col  << " y_r: " << top->s_y_row 
+				 << " y_c: " << top->s_y_col <<  " z_r: " << top->s_z_row << " z_c: " << top->s_z_col 
+				 << " n: " << top->s_n << "\n"; */
+ 
+
        st_.pop();
     }
     
@@ -204,16 +257,16 @@ public:
 			    is_started = true;
                 //std::cout << "Inside Run : Popping Job" << "\n";
                 Work *w = this->pop_back();
-                (*(w->t_))(w->td_.X_, w->td_.Y_, w->td_.Z_, w->td_.x_row,
-                          w->td_.x_col, w->td_.y_row, w->td_.y_col, w->td_.z_row, 
-                          w->td_.z_col, w->td_.n_, w->sync_, id_);
+                (*(w->w_t))(w->w_td.t_X, w->w_td.t_Y, w->w_td.t_Z, w->w_td.t_x_row,
+                          w->w_td.t_x_col, w->w_td.t_y_row, w->w_td.t_y_col, w->w_td.t_z_row, 
+                          w->w_td.t_z_col, w->w_td.t_n, w->w_sync, id_);
             }
             else {
                 Work *w = steal_random_work();
 				if(w != NULL) {
-                    (*(w->t_))(w->td_.X_, w->td_.Y_, w->td_.Z_, w->td_.x_row,
-                               w->td_.x_col, w->td_.y_row, w->td_.y_col, w->td_.z_row, 
-                               w->td_.z_col, w->td_.n_, w->sync_, id_);
+                    (*(w->w_t))(w->w_td.t_X, w->w_td.t_Y, w->w_td.t_Z, w->w_td.t_x_row,
+                               w->w_td.t_x_col, w->w_td.t_y_row, w->w_td.t_y_col, w->w_td.t_z_row, 
+                               w->w_td.t_z_col, w->w_td.t_n, w->w_sync, id_);
 	                count = 0;
 			    }
 				else {
