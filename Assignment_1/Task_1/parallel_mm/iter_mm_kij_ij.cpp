@@ -4,7 +4,7 @@
 #include<time.h>
 #include<cilk/cilk.h>
 
-#define msize 1024
+#define msize 512
 
 
 int main() {

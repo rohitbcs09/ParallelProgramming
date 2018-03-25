@@ -3,11 +3,14 @@
 #include<limits.h>
 #include<time.h>
 #include<cilk/cilk.h>
+#include <cilk/cilk_api.h>
 
-#define msize 512
+#define msize 1024
 
 
-int main() {
+int main(int argc, char** argv) {
+
+	__cilkrts_set_param("nworkers", argv[1]);
 
 	int **a, **b, **res;
         a = new int * [msize];
@@ -19,7 +22,7 @@ int main() {
             b[ind] = new int [msize];
             res[ind] = new int [msize];
         }
-
+	
 	clock_t start, end;
  	double cpu_time_used;
 	// make the two matrices.
@@ -31,18 +34,19 @@ int main() {
                 }
         }
 
+
 	//multiple the matrices
 	start = clock();
-	cilk_for ( int k = 0; k < msize; k++) {
-		for ( int i = 0; i < msize; i++) {
+	for ( int i = 0; i < msize; i++) {
+		for ( int k = 0; k < msize; k++) {
 			cilk_for ( int j = 0; j < msize; j++) {
 				res[i][j] = res[i][j] + a[i][k] * b[k][j];
 			}
 		}
 	}
 	end = clock();
-	
+
         cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-	std::cout << "CPU time used for kij : " << cpu_time_used << std::endl;
+	std::cout << "CPU time used for ikj : " << cpu_time_used <<  " with core " << argv[1] << std::endl;
 	return 0;
 }
