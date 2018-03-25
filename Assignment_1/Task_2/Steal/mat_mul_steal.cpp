@@ -1,4 +1,4 @@
-#include "../include/rec_mat_mul.h"
+#include "mat_mul_steal.h"
 #include <ctime>
 #include <stdint.h>
 using namespace std;

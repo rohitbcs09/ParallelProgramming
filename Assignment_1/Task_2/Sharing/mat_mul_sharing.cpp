@@ -1,4 +1,4 @@
-#include "../include/rec_mat_mul.h"
+#include "mat_mul_sharing.h"
 #include <ctime>
 #include <stdint.h>
 using namespace std;
@@ -198,20 +198,26 @@ void PAR_REC_MEM(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_col,
 	    }
 		return;
     }
-    //else {
+    else {
 		Sync* child_sync = create_sync_state(sync, 1, x_row, x_col, y_row, y_col, z_row, z_col, n);
         pool[id]->push_sync(child_sync);
 
         // pushing the work in Deque
-        pool[id]->push_back(create_work(x_row, x_col, y_row, y_col, z_row, 
+		int rand_id =  fastrand() % num_threads;
+        pool[rand_id]->push_back(create_work(x_row, x_col, y_row, y_col, z_row, 
 		                                z_col, n/2, child_sync));
-        pool[id]->push_back(create_work(x_row, x_col, y_row, y_col + n/2, 
+
+		rand_id =  fastrand() % num_threads;
+        pool[rand_id]->push_back(create_work(x_row, x_col, y_row, y_col + n/2, 
                                         z_row, z_col + n/2, n/2, child_sync));
+
+		rand_id =  fastrand() % num_threads;
         pool[id]->push_back(create_work(x_row + n/2, x_col, y_row, y_col, 
                                         z_row + n/2, z_col, n/2, child_sync));
+
         pool[id]->push_back(create_work(x_row + n/2, x_col, y_row, y_col + n/2, 
                                         z_row + n/2, z_col + n/2, n/2, child_sync));
-    //}
+    }
 }
 
 void PAR_REC_MEM_BOTTOM_HALF(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_col, 
@@ -229,19 +235,18 @@ void PAR_REC_MEM_BOTTOM_HALF(Matrix *X, Matrix *Y, Matrix *Z, int x_row, int x_c
     }
 
     // pushing the work in Deque
-    pool[id]->push_back(create_work(x_row, x_col + n/2, y_row + n/2, y_col, 
-                        z_row, z_col, n/2, sync));
-    pool[id]->push_back(create_work(x_row, x_col + n/2, y_row + n/2, y_col + n/2, 
-                        z_row, z_col + n/2, n/2, sync));
-    pool[id]->push_back(create_work(x_row + n/2, x_col + n/2, y_row + n/2, y_col,
-                        z_row + n/2, z_col, n/2, sync));
-    pool[id]->push_back(create_work(x_row + n/2, x_col + n/2, y_row + n/2, 
-	                    y_col + n/2, z_row + n/2, z_col + n/2, n/2, sync));
-}
-
-Work* Task::steal_random_work() {
-    int id = fastrand() % num_threads;
-    return pool[id]->pop_front();
+    int rand_id =  fastrand() % num_threads;
+    pool[rand_id]->push_back(create_work(x_row, x_col + n/2, y_row + n/2, y_col, 
+                             z_row, z_col, n/2, sync));
+    rand_id =  fastrand() % num_threads;
+    pool[rand_id]->push_back(create_work(x_row, x_col + n/2, y_row + n/2, y_col + n/2, 
+                             z_row, z_col + n/2, n/2, sync));
+    rand_id =  fastrand() % num_threads;
+    pool[rand_id]->push_back(create_work(x_row + n/2, x_col + n/2, y_row + n/2, y_col,
+                             z_row + n/2, z_col, n/2, sync));
+    rand_id =  fastrand() % num_threads;
+    pool[rand_id]->push_back(create_work(x_row + n/2, x_col + n/2, y_row + n/2, 
+	                         y_col + n/2, z_row + n/2, z_col + n/2, n/2, sync));
 }
 
 

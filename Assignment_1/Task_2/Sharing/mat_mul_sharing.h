@@ -1,5 +1,5 @@
-#ifndef _REC_MAT_MUL_H
-#define _REC_MAT_MUL_H
+#ifndef _MAT_MUL_STEALH
+#define _MAT_MUL_STEAL_H
 
 #include <iostream>
 #include <vector>
@@ -195,8 +195,6 @@ public:
         return st_.size() == 0 ? true : false;
     }
 
-    Work* steal_random_work();
-
     void run() {
         int count = 0;
         while(1) {
@@ -209,20 +207,11 @@ public:
                           w->td_.z_col, w->td_.n_, w->sync_, id_);
             }
             else {
-                Work *w = steal_random_work();
-				if(w != NULL) {
-                    (*(w->t_))(w->td_.X_, w->td_.Y_, w->td_.Z_, w->td_.x_row,
-                               w->td_.x_col, w->td_.y_row, w->td_.y_col, w->td_.z_row, 
-                               w->td_.z_col, w->td_.n_, w->sync_, id_);
-	                count = 0;
-			    }
-				else {
-                    ++count;
-                    if(count == 100) {
-                        std::cout << "Inside Run : Steal Failure after 20 attempts" << "\n";
-                        return;
-				    }
-                }
+                ++count;
+                if(count == 100) {
+                    std::cout << "Inside Run : Steal Failure after 20 attempts" << "\n";
+                    return;
+				}
                 // STEAL
             }
         }

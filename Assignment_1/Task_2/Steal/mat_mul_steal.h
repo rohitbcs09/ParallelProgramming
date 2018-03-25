@@ -1,5 +1,5 @@
-#ifndef _REC_MAT_MUL_H
-#define _REC_MAT_MUL_H
+#ifndef _MAT_MUL_STEALH
+#define _MAT_MUL_STEAL_H
 
 #include <iostream>
 #include <vector>

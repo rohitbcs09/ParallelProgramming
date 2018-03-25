@@ -1,5 +1,5 @@
-#ifndef _REC_MAT_MUL_H
-#define _REC_MAT_MUL_H
+#ifndef _MAT_MUL_STEALH
+#define _MAT_MUL_STEAL_H
 
 #include <iostream>
 #include <vector>
@@ -81,26 +81,8 @@ typedef struct work {
     Sync* sync_;
 } Work;
 
-class Task { 
+class Deque {
 public:
-    Task(int id) {
-        is_done = false;
-        is_started = false;
-        id_ = id;
-    }
-    
-    ~Task() {
-        d_.clear();
-    }
-    
-    void set_is_started(bool val) {
-        is_started = val;
-    }
-
-    void set_is_done(bool val) {
-        is_done = val;
-    }
-
     void push_front(Work* w) {
         std::unique_lock<std::mutex> lock(m_);
         d_.push_front(w);
@@ -132,9 +114,46 @@ public:
     }
 
     int get_deque_size() {
+        std::unique_lock<std::mutex> lock(m_);
         return d_.size();
     }
+
+    int empty() {
+        std::unique_lock<std::mutex> lock(m_);
+        return d_.empty();
+    }
+
+private:
+    std::deque<Work *> d_;
+    std::mutex m_;
+};
+
+
+class Task { 
+public:
+    Task(int id, Deque *ptr) {
+        is_done = false;
+        is_started = false;
+        id_ = id;
+		dq_ = ptr;
+    }
     
+    ~Task() {
+        //d_.clear();
+    }
+    
+    void set_is_started(bool val) {
+        is_started = val;
+    }
+
+    void set_is_done(bool val) {
+        is_done = val;
+    }
+
+    void push_back(Work* w) {
+        dq_->push_back(w);
+    }
+       
     void push_sync(Sync* s) {
 	    if(s == NULL) {
 		    return;
@@ -195,49 +214,25 @@ public:
         return st_.size() == 0 ? true : false;
     }
 
-    Work* steal_random_work();
-
     void run() {
         int count = 0;
-        while(1) {
-            if(!d_.empty()) {
-			    is_started = true;
-                //std::cout << "Inside Run : Popping Job" << "\n";
-                Work *w = this->pop_back();
-                (*(w->t_))(w->td_.X_, w->td_.Y_, w->td_.Z_, w->td_.x_row,
-                          w->td_.x_col, w->td_.y_row, w->td_.y_col, w->td_.z_row, 
-                          w->td_.z_col, w->td_.n_, w->sync_, id_);
-            }
-            else {
-                Work *w = steal_random_work();
-				if(w != NULL) {
-                    (*(w->t_))(w->td_.X_, w->td_.Y_, w->td_.Z_, w->td_.x_row,
-                               w->td_.x_col, w->td_.y_row, w->td_.y_col, w->td_.z_row, 
-                               w->td_.z_col, w->td_.n_, w->sync_, id_);
-	                count = 0;
-			    }
-				else {
-                    ++count;
-                    if(count == 100) {
-                        std::cout << "Inside Run : Steal Failure after 20 attempts" << "\n";
-                        return;
-				    }
-                }
-                // STEAL
-            }
+        while(!dq_->empty()) {
+            //std::cout << "Inside Run : Popping Job" << "\n";
+            Work *w = dq_->pop_back();
+            (*(w->t_))(w->td_.X_, w->td_.Y_, w->td_.Z_, w->td_.x_row,
+                      w->td_.x_col, w->td_.y_row, w->td_.y_col, w->td_.z_row, 
+                      w->td_.z_col, w->td_.n_, w->sync_, id_);
         }
         return;
     }
 
 private:
-    std::deque<Work *> d_;
+    Deque* dq_;
     std::stack<Sync *> st_;
-    std::mutex m_;
     std::mutex s_m_;
     bool is_started;
     bool is_done;
     int id_;
 };
-
 #endif
 
