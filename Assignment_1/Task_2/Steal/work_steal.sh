@@ -7,4 +7,4 @@
 #SBATCH --mail-user=rokkumar@cs.stonybrook.edu
 #SBATCH --mail-type=begin  # email me when the job starts
 #SBATCH --mail-type=end    # email me when the job finishes
-ibrun ./steal 1024 68 > work_steal_1024_nodes_68.out 
+ibrun ./steal 16 2 > work_steal_16_nodes_2.out 

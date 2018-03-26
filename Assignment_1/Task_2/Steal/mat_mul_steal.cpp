@@ -15,9 +15,6 @@ https://stackoverflow.com/questions/1640258/need-a-fast-random-generator-for-c
 
 */
 
-#define ROWS 8 
-#define COLS 8 
-
 unsigned int cores = 1;
 
 uint64_t g_seed = time(0);
@@ -34,10 +31,10 @@ void PAR_REC_MEM(Matrix* x, Matrix* y, Matrix* z, int x_row, int x_col,
                  int y_row, int y_col, int z_row, int z_col, int n, Sync* sync,
                  int id);
  
-void fillMatrix(Matrix &arr) {
-    for(int i = 0; i<ROWS; ++i) {
-        for(int j = 0; j<COLS; ++j) {
-            arr[i][j] = fastrand();
+void fillMatrix(Matrix &arr, int n) {
+    for(int i = 0; i<n; ++i) {
+        for(int j = 0; j<n; ++j) {
+            arr[i][j] =j+1; //fastrand();
         }
     }
 }
@@ -150,7 +147,7 @@ void update_sync_queue_bottom_half(Matrix *x, Matrix *y, Matrix *z, Sync *cur,
 void PAR_REC_MEM(Matrix *x, Matrix *y, Matrix *z, int x_row, int x_col, 
                  int y_row, int y_col, int z_row, int z_col, int n, Sync* sync,
                  int id) {
-    if(n == 32) {
+    if(n == 16) {
         // Matrix_Multiply(x, y, z, x_row, x_col, y_row, y_col, z_row, z_col, 1);
         for(int i = 0; i<n; ++i){
             for(int k = 0; k<n; ++k) {
@@ -251,14 +248,21 @@ int main(int argc, char* argv[]) {
     Matrix Y(n, std::vector<uint64_t>(n, 0));
     Matrix Z(n, std::vector<uint64_t>(n, 0));
 
-    fillMatrix(X);
-    fillMatrix(Y);
+    fillMatrix(X, n);
+    fillMatrix(Y, n);
 
     // Print matrix
     //printMatrix(X, n);
     //printMatrix(Y, n);
 
     //num_threads = std::thread::hardware_concurrency();
+    if(n < 32) {
+        printMatrix(X, n);
+        printMatrix(Y, n);
+        Matrix_Multiply(&X, &Y, &Z, 0, 0, 0, 0, 0, 0, n);
+        printMatrix(Z, n);
+        return 1;
+    }
     int i = 0;
     for(; i<cores; ++i) {
         pool.push_back(new Task(i, cores));
