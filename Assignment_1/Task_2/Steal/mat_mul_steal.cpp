@@ -34,7 +34,7 @@ void PAR_REC_MEM(Matrix* x, Matrix* y, Matrix* z, int x_row, int x_col,
 void fillMatrix(Matrix &arr, int n) {
     for(int i = 0; i<n; ++i) {
         for(int j = 0; j<n; ++j) {
-            arr[i][j] =j+1; //fastrand();
+            arr[i][j] = fastrand();
         }
     }
 }
