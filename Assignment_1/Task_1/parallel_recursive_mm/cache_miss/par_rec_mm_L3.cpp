@@ -143,15 +143,17 @@ int main(int argc, char *argv[]) {
 
     int numEvents = 1;
     long long values[1];
-    int events[1] = {PAPI_L3_TCM};
-
-     if (PAPI_start_counters(events, numEvents) != PAPI_OK) {
-         handle_error(1);
-     }
+    int events[1] = {PAPI_L3_DCM};
 
     using namespace std::chrono;
 
-    high_resolution_clock::time_point t1 = high_resolution_clock::now(); 
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+ 
+    if (PAPI_start_counters(events, numEvents) != PAPI_OK) {
+	 // std::cout << PAPI_start_counters(events, numEvents) << std::endl;
+         handle_error(1);
+     }
+ 
     
     cilk_spawn PAR_REC_MEM(A, B, Z, 0, 0, 0, 0, 0, 0, msize, base);
     cilk_sync;

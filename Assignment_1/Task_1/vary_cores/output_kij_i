@@ -1,24 +1,272 @@
-CPU time used for kij : 0.84 with core 1
-CPU time used for kij : 0.86 with core 2
-CPU time used for kij : 0.97 with core 3
-CPU time used for kij : 1.01 with core 4
-CPU time used for kij : 1.05 with core 5
-CPU time used for kij : 1.11 with core 6
-CPU time used for kij : 1.16 with core 7
-CPU time used for kij : 1.22 with core 8
-CPU time used for kij : 1.26 with core 9
-CPU time used for kij : 1.33 with core 10
-CPU time used for kij : 1.38 with core 11
-CPU time used for kij : 1.46 with core 12
-CPU time used for kij : 1.51 with core 13
-CPU time used for kij : 1.57 with core 14
-CPU time used for kij : 1.64 with core 15
-CPU time used for kij : 1.71 with core 16
-CPU time used for kij : 1.79 with core 17
-CPU time used for kij : 1.89 with core 18
-CPU time used for kij : 1.97 with core 19
-CPU time used for kij : 1.99 with core 20
-CPU time used for kij : 2.17 with core 21
-CPU time used for kij : 2.17 with core 22
-CPU time used for kij : 2.29 with core 23
-CPU time used for kij : 2.37 with core 24
+TACC:  Starting up job 993833 
+TACC:  Starting up job 993830 
+TACC:  Starting up job 993832 
+TACC:  Starting up job 993835 
+TACC:  Starting up job 993837 
+TACC:  Starting up job 993834 
+TACC:  Starting up job 993836 
+TACC:  Starting up job 993829 
+TACC:  Starting up job 993831 
+TACC:  Starting up job 993838 
+TACC:  Starting up job 993828 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting up job 993839 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 5.49855 with core 11
+CPU time used for kij : 4.97322 with core 12
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 6.01443 with core 10
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 6.61041 with core 9
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 7.47086 with core 8
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 8.47811 with core 7
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 9.57531 with core 6
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993860 
+TACC:  Starting up job 993852 
+TACC:  Starting up job 993851 
+TACC:  Starting up job 993849 
+TACC:  Starting up job 993858 
+TACC:  Starting up job 993845 
+TACC:  Starting up job 993859 
+TACC:  Starting up job 993843 
+TACC:  Starting up job 993842 
+TACC:  Starting up job 993856 
+TACC:  Starting up job 993854 
+TACC:  Starting up job 993846 
+TACC:  Starting up job 993840 
+TACC:  Starting up job 993841 
+TACC:  Starting up job 993848 
+TACC:  Starting up job 993855 
+TACC:  Starting up job 993844 
+TACC:  Starting up job 993857 
+TACC:  Starting up job 993853 
+TACC:  Starting up job 993863 
+TACC:  Starting up job 993865 
+TACC:  Starting up job 993864 
+TACC:  Starting up job 993847 
+TACC:  Starting up job 993850 
+TACC:  Starting up job 993866 
+TACC:  Starting up job 993867 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting up job 993862 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 11.0638 with core 5
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 2.06502 with core 38
+CPU time used for kij : 2.04961 with core 39
+CPU time used for kij : 2.07756 with core 37
+CPU time used for kij : 2.13466 with core 36
+CPU time used for kij : 2.31069 with core 33
+CPU time used for kij : 2.24196 with core 35
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 2.39795 with core 32
+CPU time used for kij : 2.39168 with core 31
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 2.49962 with core 29
+CPU time used for kij : 2.49869 with core 30
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 13.428 with core 4
+CPU time used for kij : 2.5904 with core 27
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 2.60662 with core 28
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 2.69198 with core 26
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 2.84028 with core 25
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 2.92716 with core 24
+CPU time used for kij : 2.28867 with core 34
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 3.08961 with core 22
+CPU time used for kij : 3.01501 with core 23
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 3.25627 with core 21
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 3.35147 with core 20
+CPU time used for kij : 3.50368 with core 19
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 3.77763 with core 18
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 3.79618 with core 17
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 4.02846 with core 16
+CPU time used for kij : 4.10679 with core 15
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 4.56127 with core 14
+CPU time used for kij : 4.72262 with core 13
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 18.3581 with core 3
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993868 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 2.05027 with core 40
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 26.4797 with core 2
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 50.4964 with core 1
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993881 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.98198 with core 42
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993880 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.93323 with core 41
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993882 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.85986 with core 43
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993883 
+TACC:  Starting up job 993885 
+TACC:  Starting up job 993884 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.82348 with core 44
+CPU time used for kij : 1.78461 with core 46
+CPU time used for kij : 1.79261 with core 45
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993886 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.7851 with core 47
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993887 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.76554 with core 48
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993889 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.76099 with core 49
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993890 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.77514 with core 50
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993891 
+TACC:  Starting up job 993892 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.67515 with core 51
+CPU time used for kij : 1.7126 with core 52
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993893 
+TACC:  Starting parallel tasks... 
+TACC:  Starting up job 993894 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.64117 with core 53
+TACC:  Shutdown complete. Exiting. 
+CPU time used for kij : 1.73875 with core 54
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993895 
+TACC:  Starting up job 993896 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.66364 with core 56
+CPU time used for kij : 1.71641 with core 55
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993899 
+TACC:  Starting up job 993897 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.63964 with core 58
+CPU time used for kij : 1.78901 with core 57
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993901 
+TACC:  Starting up job 993900 
+TACC:  Starting up job 993902 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.62544 with core 60
+CPU time used for kij : 1.59652 with core 61
+CPU time used for kij : 1.65084 with core 59
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993903 
+TACC:  Starting up job 993905 
+TACC:  Starting up job 993904 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.52259 with core 63
+CPU time used for kij : 1.63277 with core 62
+CPU time used for kij : 1.70926 with core 64
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993906 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.56074 with core 65
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993907 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.61722 with core 66
+TACC:  Shutdown complete. Exiting. 
+TACC:  Starting up job 993908 
+TACC:  Starting up job 993909 
+TACC:  Starting parallel tasks... 
+TACC:  Starting parallel tasks... 
+CPU time used for kij : 1.54773 with core 67
+CPU time used for kij : 1.66111 with core 68
+TACC:  Shutdown complete. Exiting. 
+TACC:  Shutdown complete. Exiting. 
