@@ -255,15 +255,18 @@ public:
                 is_started = true;
                 //std::cout << "Inside Run : Popping Job" << "\n";
                 Work *w = this->pop_back();
-                (*(w->w_t))(w->w_td.t_X, w->w_td.t_Y, w->w_td.t_Z, 
-                            w->w_td.t_x_row, w->w_td.t_x_col, w->w_td.t_y_row, 
-                            w->w_td.t_y_col, w->w_td.t_z_row, w->w_td.t_z_col, 
-                            w->w_td.t_n, w->w_sync, id_);
+                if(w) {
+                    (*(w->w_t))(w->w_td.t_X, w->w_td.t_Y, w->w_td.t_Z, 
+                                w->w_td.t_x_row, w->w_td.t_x_col, w->w_td.t_y_row, 
+                                w->w_td.t_y_col, w->w_td.t_z_row, w->w_td.t_z_col, 
+                                w->w_td.t_n, w->w_sync, id_);
+                }
+                steal_count = 0;
             }
             else {
                 // STEAL
                 ++steal_count;
-                if(steal_count == steal_count_) {
+                if(steal_count == 1000*steal_count_) {
                     return;
                 }
             }
@@ -278,6 +281,8 @@ private:
     std::mutex s_m_;
     bool is_started;
     bool is_done;
+    bool is_top_half_done;
+    bool is_bottom_half_done;
     int id_;
     int cores_;
     uint64_t steal_count_; 
