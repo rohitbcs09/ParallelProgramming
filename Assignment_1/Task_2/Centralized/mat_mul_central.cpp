@@ -223,9 +223,13 @@ int main(int argc, char* argv[]) {
     if(argc < 2)  {
         std::cout << "Please peovide the input matrix size as 1st arg\n";
 		return 1;
-	}
+    }
 	
-	int n = atoi(argv[1]);
+    int n = atoi(argv[1]);
+
+    if(argc == 3) {
+       cores =  atoi(argv[2]);
+    }
 
     // Input Matrices
     Matrix X(n, std::vector<uint64_t>(n, 0));
