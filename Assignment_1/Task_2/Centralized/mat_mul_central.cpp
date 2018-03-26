@@ -148,10 +148,10 @@ void update_sync_queue_bottom_half(Matrix *x, Matrix *y, Matrix *z, Sync *cur,
 void PAR_REC_MEM(Matrix *x, Matrix *y, Matrix *z, int x_row, int x_col, 
                  int y_row, int y_col, int z_row, int z_col, int n, Sync* sync,
                  int id) {
-    if(n == 1) {
+    if(n == 16) {
         Matrix_Multiply(x, y, z, x_row, x_col, y_row, y_col, z_row, z_col, 1);
         pool[id]->dec_sync_ref_count(sync);
-        if(pool[id]->get_sync_ref_count(sync) == 0) {
+        if(sync && pool[id]->get_sync_ref_count(sync) == 0) {
             pool[id]->pop_sync();
             //update_sync_queue_bottom_half(x, y, z, sync, id);
             Sync* cur = sync;
