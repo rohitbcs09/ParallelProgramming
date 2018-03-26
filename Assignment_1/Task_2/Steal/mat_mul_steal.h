@@ -257,10 +257,12 @@ public:
                 is_started = true;
                 //std::cout << "Inside Run : Popping Job" << "\n";
                 Work *w = this->pop_back();
-                (*(w->w_t))(w->w_td.t_X, w->w_td.t_Y, w->w_td.t_Z, 
-                            w->w_td.t_x_row, w->w_td.t_x_col, w->w_td.t_y_row, 
-                            w->w_td.t_y_col, w->w_td.t_z_row, w->w_td.t_z_col, 
-                            w->w_td.t_n, w->w_sync, id_);
+                if(w != NULL) {
+                    (*(w->w_t))(w->w_td.t_X, w->w_td.t_Y, w->w_td.t_Z, 
+                                w->w_td.t_x_row, w->w_td.t_x_col, w->w_td.t_y_row, 
+                                w->w_td.t_y_col, w->w_td.t_z_row, w->w_td.t_z_col, 
+                                w->w_td.t_n, w->w_sync, id_);
+                }
             }
             else {
                 Work *w = steal_random_work();
@@ -296,4 +298,3 @@ private:
 };
 
 #endif
-
