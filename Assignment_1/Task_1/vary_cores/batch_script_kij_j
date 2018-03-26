@@ -7,4 +7,4 @@
 #SBATCH --mail-user=mranjan@cs.stonybrook.edu
 #SBATCH --mail-type=begin  # email me when the job starts
 #SBATCH --mail-type=end    # email me when the job finishes
-ibrun ./a_kij_ij > output_kij_ij
+ibrun ./a_kij_j $1 >> output_kij_j

@@ -5,6 +5,8 @@
 #include <time.h>
 #include <cstdlib>
 #include <cilk/cilk.h>
+#include<cilk/cilk_api.h>
+#include <chrono>
 
 using namespace std;
 
@@ -106,20 +108,22 @@ void PAR_REC_MEM(std::vector<std::vector<uint64_t> > &X,
         cilk_spawn PAR_REC_MEM(X, Y, Z, x_row, x_col, y_row, y_col, z_row, z_col, n/2, base);
         cilk_spawn PAR_REC_MEM(X, Y, Z, x_row, x_col, y_row, y_col + n/2, z_row, z_col + n/2, n/2, base);
         cilk_spawn PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col, y_row, y_col, z_row + n/2, z_col, n/2, base);
-        cilk_spawn PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col, y_row, y_col + n/2, z_row + n/2, z_col + n/2, n/2, base);
+        PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col, y_row, y_col + n/2, z_row + n/2, z_col + n/2, n/2, base);
         cilk_sync;
         cilk_spawn PAR_REC_MEM(X, Y, Z, x_row, x_col + n/2, y_row + n/2, y_col, z_row, z_col, n/2, base);
         cilk_spawn PAR_REC_MEM(X, Y, Z, x_row, x_col + n/2, y_row + n/2, y_col + n/2, z_row, z_col + n/2, n/2, base);
         cilk_spawn PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col + n/2, y_row + n/2, y_col, z_row + n/2, z_col, n/2, base);
-        cilk_spawn PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col + n/2, y_row + n/2, y_col + n/2, z_row + n/2, z_col + n/2, n/2, base);
+        PAR_REC_MEM(X, Y, Z, x_row + n/2, x_col + n/2, y_row + n/2, y_col + n/2, z_row + n/2, z_col + n/2, n/2, base);
         cilk_sync;
     }
 }
 
 int main(int argc, char *argv[]) {
 
+    __cilkrts_set_param("nworkers", argv[3]);
+
     int msize = atoi(argv[1]);
-    int base = atoi(argv[1]);
+    int base = atoi(argv[2]);
 
     std::vector< std::vector<uint64_t> > A(msize, std::vector<uint64_t>(msize, 0));
     std::vector< std::vector<uint64_t> > B(msize, std::vector<uint64_t>(msize, 0));
@@ -132,19 +136,20 @@ int main(int argc, char *argv[]) {
     // printMatrix(A, 8);
     // printMatrix(B, 8);
 
-    clock_t start, end;
-    double cpu_time_used;
 
-    start = clock();   
-    
+    using namespace std::chrono;
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+   
+ 
     cilk_spawn PAR_REC_MEM(A, B, Z, 0, 0, 0, 0, 0, 0, msize, base);
     cilk_sync;
     // printMatrix(Z, 8);
 
-    end = clock();
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+
     
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    std::cout << "CPU time used : " << cpu_time_used << std::endl;
+    std::cout << "CPU time used : " << time_span.count() << " for core " << argv[3] << std::endl;
 
     return 1;
 }

@@ -3,11 +3,16 @@
 #include<limits.h>
 #include<time.h>
 #include<cilk/cilk.h>
+#include<cilk/cilk_api.h>
+#include <chrono>
+#include <cstdlib>
 
-#define msize 1024
 
 
-int main() {
+int main(int argc, char *argv[]) {
+
+	__cilkrts_set_param("nworkers", "68");
+	int msize = atoi(argv[1]);
 
 	int **a, **b, **res;
         a = new int * [msize];
@@ -20,8 +25,6 @@ int main() {
             res[ind] = new int [msize];
         }
 	
-	clock_t start, end;
- 	double cpu_time_used;
 	// make the two matrices.
 	for (int i = 0; i < msize; i++ ) {
                 for (int j = 0; j < msize; j++) {
@@ -31,9 +34,10 @@ int main() {
                 }
         }
 
+	using namespace std::chrono;
+    	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	//multiple the matrices
-	start = clock();
 	cilk_for ( int i = 0; i < msize; i++) {
 		for ( int k = 0; k < msize; k++) {
 			cilk_for ( int j = 0; j < msize; j++) {
@@ -41,9 +45,10 @@ int main() {
 			}
 		}
 	}
-	end = clock();
 
-        cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-	std::cout << "CPU time used for ikj : " << cpu_time_used << std::endl;
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+
+	std::cout << "CPU time used for ikj : " << time_span.count() << std::endl;
 	return 0;
 }

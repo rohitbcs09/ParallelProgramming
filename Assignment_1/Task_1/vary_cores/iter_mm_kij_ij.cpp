@@ -4,6 +4,7 @@
 #include<time.h>
 #include<cilk/cilk.h>
 #include <cilk/cilk_api.h>
+#include <chrono>
 
 #define msize 1024
 
@@ -23,8 +24,6 @@ int main(int argc, char** argv) {
             res[ind] = new int [msize];
         }
 
-	clock_t start, end;
- 	double cpu_time_used;
 	// make the two matrices.
 	for (int i = 0; i < msize; i++ ) {
                 for (int j = 0; j < msize; j++) {
@@ -34,8 +33,10 @@ int main(int argc, char** argv) {
                 }
         }
 
+	using namespace std::chrono;
+    	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
 	//multiple the matrices
-	start = clock();
 	for ( int k = 0; k < msize; k++) {
 		cilk_for ( int i = 0; i < msize; i++) {
 			cilk_for ( int j = 0; j < msize; j++) {
@@ -43,9 +44,10 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
-	end = clock();
 	
-        cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-	std::cout << "CPU time used for kij : " << cpu_time_used <<  " with core " << argv[1] << std::endl;
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+	
+	std::cout << "CPU time used for kij : " << time_span.count() <<  " with core " << argv[1] << std::endl;
 	return 0;
 }

@@ -5,13 +5,14 @@
 #include<cilk/cilk.h>
 #include<cilk/cilk_api.h>
 #include <chrono>
+#include <cstdlib>
 
-#define msize 1024
 
 
-int main() {
+int main(int argc, char *argv[]) {
 
 	__cilkrts_set_param("nworkers", "68");
+	int msize = atoi(argv[1]);
 
 	int **a, **b, **res;
         a = new int * [msize];
