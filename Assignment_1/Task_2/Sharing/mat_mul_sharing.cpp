@@ -35,7 +35,7 @@ void PAR_REC_MEM(Matrix* x, Matrix* y, Matrix* z, int x_row, int x_col,
 void fillMatrix(Matrix &arr, int n) {
     for(int i = 0; i<n; ++i) {
         for(int j = 0; j<n; ++j) {
-            arr[i][j] = j+1; //fastrand();
+            arr[i][j] = fastrand();
         }
     }
 }
@@ -260,10 +260,10 @@ int main(int argc, char* argv[]) {
 
     //num_threads = std::thread::hardware_concurrency();
     if(n < 32) {
-        printMatrix(X, n);
-        printMatrix(Y, n);
+        //printMatrix(X, n);
+        //printMatrix(Y, n);
         Matrix_Multiply(&X, &Y, &Z, 0, 0, 0, 0, 0, 0, n);
-        printMatrix(Z, n);
+        //printMatrix(Z, n);
         return 1;
     }
     int i = 0;
@@ -286,7 +286,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Exectution Time: " << time_span.count() << " seconds.";
     std::cout << std::endl;
 
-    printMatrix(Z, n);
+    //printMatrix(Z, n);
     
     return 1;
 }

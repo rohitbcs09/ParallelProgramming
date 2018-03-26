@@ -14,6 +14,8 @@ using namespace std;
 
 extern uint64_t g_seed;
 
+
+
 uint64_t fastrand() {
   g_seed = (214013 * g_seed + 2531011); 
   return (g_seed>>16) & 0x7FFF; 
@@ -72,77 +74,11 @@ typedef struct work {
     Sync* w_sync;
 } Work;
 
-class Deque {
-public:
-    void push_front(Work* w) {
-        std::unique_lock<std::mutex> lock(m_);
-        /*std::cout << "PUF: " << " x_row: " << w->w_td.t_x_row << " x_col: " 
-                    << w->w_td.t_x_col << " y_row: " << w->w_td.t_y_row 
-                    << " y_col: " << w->w_td.t_y_col << " z_row: "
-                    << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col 
-                    << " size: " << w->w_td.t_n<< "\n"; */
-        d_.push_front(w);
-    }
-
-    void push_back(Work* w) {
-        std::unique_lock<std::mutex> lock(m_);
-        /*std::cout << "PUB: " << " x_row: " << w->w_td.t_x_row << " x_col: " 
-                    << w->w_td.t_x_col << " y_row: " << w->w_td.t_y_row 
-                    << " y_col: " << w->w_td.t_y_col << " z_row: " 
-                    << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col 
-                    << " size: " << w->w_td.t_n << "\n"; */
-        d_.push_back(w);
-    }
-    
-    Work* pop_back() {
-        std::unique_lock<std::mutex> lock(m_);
-        if(d_.size() == 0) {
-            return NULL;
-        }
-        Work *w = d_.back();
-        /*std::cout << "POB: " << " x_row: " << w->w_td.t_x_row << " x_col: " 
-                    << w->w_td.t_x_col << " y_row: " << w->w_td.t_y_row 
-                    << " y_col: " << w->w_td.t_y_col << " z_row: "
-                    << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col 
-                    << " size: " << w->w_td.t_n << "\n"; */
-       
-        d_.pop_back();
-        return w;
-    }
-
-    Work* pop_front() {
-        std::unique_lock<std::mutex> lock(m_);
-        if(d_.size() == 0) {
-            return NULL;
-        }
-        Work *w = d_.front();
-        /*std::cout << "POF: " << " x_row: " << w->w_td.t_x_row << " x_col: " 
-                    << w->w_td.t_x_col << " y_row: " << w->w_td.t_y_row 
-                    << " y_col: " << w->w_td.t_y_col << " z_row: " 
-                    << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col 
-                    << " size: " << w->w_td.t_n << "\n"; */
-        d_.pop_front();
-        return w;
-    }
-
-    int get_deque_size() {
-        std::unique_lock<std::mutex> lock(m_);
-        return d_.size();
-    }
-
-    int empty() {
-        std::unique_lock<std::mutex> lock(m_);
-        return d_.empty();
-    }
-
-private:
-    std::deque<Work *> d_;
-    std::mutex m_;
-};
+std::deque<Work *> global_deque;
 
 class Task { 
 public:
-    Task(int id, Deque *ptr, int core) {
+    Task(int id, std::deque<Work *> *ptr, int core) {
         is_done = false;
         is_started = false;
         id_ = id;
@@ -153,14 +89,71 @@ public:
         else {
             steal_count_ = ceil(core * log2(core));
         }
-		dq_ = ptr;
+        dq_ = ptr;
     }
           
     ~Task() {
     }
-     
+
+    void push_front(Work* w) {
+        std::unique_lock<std::mutex> lock(m_);
+        /*std::cout << "PUF: " << " x_row: " << w->w_td.t_x_row << " x_col: " 
+                    << w->w_td.t_x_col << " y_row: " << w->w_td.t_y_row 
+                    << " y_col: " << w->w_td.t_y_col << " z_row: "
+                    << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col 
+                    << " size: " << w->w_td.t_n<< "\n"; */
+        (*dq_).push_front(w);
+    }
+
     void push_back(Work* w) {
-        dq_->push_back(w);
+        std::unique_lock<std::mutex> lock(m_);
+        /*std::cout << "PUB: " << " x_row: " << w->w_td.t_x_row << " x_col: " 
+                    << w->w_td.t_x_col << " y_row: " << w->w_td.t_y_row 
+                    << " y_col: " << w->w_td.t_y_col << " z_row: " 
+                    << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col 
+                    << " size: " << w->w_td.t_n << "\n"; */
+        (*dq_).push_back(w);
+    }
+    
+    Work* pop_back() {
+        std::unique_lock<std::mutex> lock(m_);
+        if((*dq_).size() == 0) {
+            return NULL;
+        }
+        Work *w = (*dq_).back();
+        /*std::cout << "POB: " << " x_row: " << w->w_td.t_x_row << " x_col: " 
+                    << w->w_td.t_x_col << " y_row: " << w->w_td.t_y_row 
+                    << " y_col: " << w->w_td.t_y_col << " z_row: "
+                    << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col 
+                    << " size: " << w->w_td.t_n << "\n"; */
+       
+        (*dq_).pop_back();
+        return w;
+    }
+
+    Work* pop_front() {
+        std::unique_lock<std::mutex> lock(m_);
+        if((*dq_).size() == 0) {
+            return NULL;
+        }
+        Work *w = (*dq_).front();
+        /*std::cout << "POF: " << " x_row: " << w->w_td.t_x_row << " x_col: " 
+                    << w->w_td.t_x_col << " y_row: " << w->w_td.t_y_row 
+                    << " y_col: " << w->w_td.t_y_col << " z_row: " 
+                    << w->w_td.t_z_row << " z_col: " << w->w_td.t_z_col 
+                    << " size: " << w->w_td.t_n << "\n"; */
+        (*dq_).pop_front();
+        return w;
+    }
+
+    int get_deque_size() {
+        std::unique_lock<std::mutex> lock(m_);
+        return (*dq_).size();
+    }
+
+    int empty() {
+        std::unique_lock<std::mutex> lock(m_);
+        return (*dq_).empty();
     }
 
     void set_is_started(bool val) {
@@ -267,19 +260,23 @@ public:
 
     void run() {
         int steal_count = 0;
-        while(!dq_->empty()) {
-            //std::cout << "Inside Run : Popping Job" << "\n";
-            Work *w = dq_->pop_back();
-            (*(w->w_t))(w->w_td.t_X, w->w_td.t_Y, w->w_td.t_Z, 
-                        w->w_td.t_x_row, w->w_td.t_x_col, w->w_td.t_y_row, 
-                        w->w_td.t_y_col, w->w_td.t_z_row, w->w_td.t_z_col, 
-                        w->w_td.t_n, w->w_sync, id_);
+        while(!(*dq_).empty()) {
+            Work *w = this->pop_back();
+            if(w) {
+                (*(w->w_t))(w->w_td.t_X, w->w_td.t_Y, w->w_td.t_Z, 
+                            w->w_td.t_x_row, w->w_td.t_x_col, w->w_td.t_y_row, 
+                            w->w_td.t_y_col, w->w_td.t_z_row, w->w_td.t_z_col, 
+                            w->w_td.t_n, w->w_sync, id_);
+            }
+            else {
+                return;
+            }
         }
-        return;
     }
 
 private:
-    Deque* dq_;
+    std::deque<Work *>* dq_;
+    std::mutex m_;
     std::stack<Sync *> st_;
     std::mutex s_m_;
     bool is_started;
