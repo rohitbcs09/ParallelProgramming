@@ -5,6 +5,13 @@
 #include <ctime>
 #include <ratio>
 #include <chrono>
+#include <papi.h>
+
+
+void handle_error(int err){
+    std::cerr << "PAPI error: " << err << std::endl;
+}
+
 using namespace std;
 
 /*
@@ -148,10 +155,10 @@ void update_sync_queue_bottom_half(Matrix *x, Matrix *y, Matrix *z, Sync *cur,
 void PAR_REC_MEM(Matrix *x, Matrix *y, Matrix *z, int x_row, int x_col, 
                  int y_row, int y_col, int z_row, int z_col, int n, Sync* sync,
                  int id) {
-    if(n == 1) {
+    if(n == 16) {
         Matrix_Multiply(x, y, z, x_row, x_col, y_row, y_col, z_row, z_col, 1);
         pool[id]->dec_sync_ref_count(sync);
-        if(pool[id]->get_sync_ref_count(sync) == 0) {
+        if(sync && pool[id]->get_sync_ref_count(sync) == 0) {
             pool[id]->pop_sync();
             //update_sync_queue_bottom_half(x, y, z, sync, id);
             Sync* cur = sync;
@@ -260,6 +267,15 @@ int main(int argc, char* argv[]) {
     using namespace std::chrono;    
     high_resolution_clock::time_point start_time = high_resolution_clock::now();
 
+    int numEvents = 1;
+    long long values[1];
+    int events[1] = {PAPI_L3_TCM};
+
+    if (PAPI_start_counters(events, numEvents) != PAPI_OK) {
+            handle_error(1);
+    }
+
+
     // cilk spawn each thread in the pool
     for(int i = 0; i<cores-1; ++i) {
         cilk_spawn pool[i]->run();
@@ -269,7 +285,13 @@ int main(int argc, char* argv[]) {
     high_resolution_clock::time_point end_time = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
 
-    std::cout << "Exectution Time: " << time_span.count() << " seconds.";
+    //std::cout << "Exectution Time: " << time_span.count() << " seconds.";
+    if ( PAPI_stop_counters(values, numEvents) != PAPI_OK) {
+            handle_error(1);
+    }
+
+    std::cout<<"L3 misses: "<<values[0] << " for size " <<  argv[1] << " and cores " << argv[2] <<  std::endl;
+
     std::cout << std::endl;
     //printMatrix(Z, n);
     

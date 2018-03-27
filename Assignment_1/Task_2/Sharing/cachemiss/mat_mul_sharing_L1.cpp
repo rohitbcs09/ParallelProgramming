@@ -1,21 +1,27 @@
-#include "mat_mul_central.h"
+#include "mat_mul_sharing.h"
 #include <ctime>
-#include <stdint.h>
+#include <stdint.h> 
 #include <cilk/cilk.h>
 #include <ctime>
 #include <ratio>
 #include <chrono>
 #include <papi.h>
 
+
 using namespace std;
 
 /*
+
 FAST RANDOM NUMBER GENERATOR:
 ============================
 
 https://stackoverflow.com/questions/1640258/need-a-fast-random-generator-for-c
 
 */
+
+void handle_error(int err){
+    std::cerr << "PAPI error: " << err << std::endl;
+}
 
 unsigned int cores = 1;
 
@@ -24,16 +30,10 @@ uint64_t g_seed = time(0);
 // Thread Pool 
 std::vector<Task *> pool;
 
-extern std::deque<Work *> global_deque;
-
-void handle_error(int err){
-    std::cerr << "PAPI error: " << err << std::endl;
-}
-
 
 void PAR_REC_MEM_BOTTOM_HALF(Matrix* x, Matrix* y, Matrix* z, int x_row, 
                              int x_col, int y_row, int y_col, int z_row, 
-							 int z_col, int n, Sync* sync, int id);
+                             int z_col, int n, Sync* sync, int id);
  
 void PAR_REC_MEM(Matrix* x, Matrix* y, Matrix* z, int x_row, int x_col, 
                  int y_row, int y_col, int z_row, int z_col, int n, Sync* sync,
@@ -156,7 +156,15 @@ void PAR_REC_MEM(Matrix *x, Matrix *y, Matrix *z, int x_row, int x_col,
                  int y_row, int y_col, int z_row, int z_col, int n, Sync* sync,
                  int id) {
     if(n == 16) {
-        Matrix_Multiply(x, y, z, x_row, x_col, y_row, y_col, z_row, z_col, 1);
+        // Matrix_Multiply(x, y, z, x_row, x_col, y_row, y_col, z_row, z_col, 1);
+        for(int i = 0; i<n; ++i){
+            for(int k = 0; k<n; ++k) {
+                for(int j = 0; j<n; ++j) {
+                    ((*z)[z_row + i][z_col + j]) += 
+                        ((*x)[x_row + i][x_col + k]) * ((*y)[y_row + k][y_col + j]);
+                }
+            }
+        }
         pool[id]->dec_sync_ref_count(sync);
         if(sync && pool[id]->get_sync_ref_count(sync) == 0) {
             pool[id]->pop_sync();
@@ -192,12 +200,16 @@ void PAR_REC_MEM(Matrix *x, Matrix *y, Matrix *z, int x_row, int x_col,
         pool[id]->push_sync(child_sync);
 
         // pushing the work in Deque
-        pool[id]->push_back(create_work(x, y, z, x_row, x_col, y_row, y_col, 
-                                        z_row, z_col, n/2, child_sync));
-        pool[id]->push_back(create_work(x, y, z, x_row, x_col, y_row, y_col + 
+        int rand_id =  fastrand() % cores;
+        pool[rand_id]->push_front(create_work(x, y, z, x_row, x_col, y_row, 
+                                             y_col, z_row, z_col, n/2, 
+                                             child_sync));
+        rand_id =  fastrand() % cores;
+        pool[rand_id]->push_front(create_work(x, y, z, x_row, x_col, y_row, y_col + 
                                         n/2, z_row, z_col + n/2, n/2, 
                                         child_sync));
-        pool[id]->push_back(create_work(x, y, z, x_row + n/2, x_col, y_row, 
+        rand_id =  fastrand() % cores;
+        pool[rand_id]->push_front(create_work(x, y, z, x_row + n/2, x_col, y_row, 
                                         y_col, z_row + n/2, z_col, n/2, 
                                         child_sync));
         pool[id]->push_back(create_work(x, y, z, x_row + n/2, x_col, y_row, 
@@ -212,28 +224,31 @@ void PAR_REC_MEM_BOTTOM_HALF(Matrix *x, Matrix *y, Matrix *z, int x_row,
                              int z_col, int n, Sync* sync, int id) {
 
     // pushing the work in Deque
-    pool[id]->push_back(create_work(x, y, z, x_row, x_col + n/2, y_row + n/2, 
-                                    y_col, z_row, z_col, n/2, sync));
-    pool[id]->push_back(create_work(x, y, z, x_row, x_col + n/2, y_row + n/2, 
-                                    y_col + n/2, z_row, z_col + n/2, n/2, 
-                                    sync));
-    pool[id]->push_back(create_work(x, y, z, x_row + n/2, x_col + n/2, y_row + 
-                                    n/2, y_col, z_row + n/2, z_col, n/2, 
-                                    sync));
-    pool[id]->push_back(create_work(x, y, z, x_row + n/2, x_col + n/2, y_row + 
-                                    n/2, y_col + n/2, z_row + n/2, z_col + n/2, 
-                                    n/2, sync));
+    int rand_id =  fastrand() % cores;
+    pool[rand_id]->push_front(create_work(x, y, z, x_row, x_col + n/2, y_row + 
+                                         n/2, y_col, z_row, z_col, n/2, sync));
+    rand_id =  fastrand() % cores;
+    pool[rand_id]->push_front(create_work(x, y, z, x_row, x_col + n/2, y_row + 
+                                         n/2, y_col + n/2, z_row, z_col + n/2, 
+                                         n/2, sync));
+    rand_id =  fastrand() % cores;
+    pool[rand_id]->push_front(create_work(x, y, z, x_row + n/2, x_col + n/2, 
+                                         y_row + n/2, y_col, z_row + n/2, 
+                                         z_col, n/2, sync));
+    rand_id =  fastrand() % cores;
+    pool[rand_id]->push_back(create_work(x, y, z, x_row + n/2, x_col + n/2, 
+                                         y_row + n/2, y_col + n/2, z_row + n/2,
+                                         z_col + n/2, n/2, sync));
 }
-
 
 int main(int argc, char* argv[]) {
     if(argc < 2)  {
         std::cout << "Please peovide the input matrix size as 1st arg\n";
-		return 1;
+        return 1;
     }
-	
+    
     int n = atoi(argv[1]);
-
+    
     if(argc == 3) {
        cores =  atoi(argv[2]);
     }
@@ -251,7 +266,7 @@ int main(int argc, char* argv[]) {
     //printMatrix(Y, n);
 
     //num_threads = std::thread::hardware_concurrency();
-    if(n < 16) {
+    if(n < 32) {
         //printMatrix(X, n);
         //printMatrix(Y, n);
         Matrix_Multiply(&X, &Y, &Z, 0, 0, 0, 0, 0, 0, n);
@@ -260,21 +275,19 @@ int main(int argc, char* argv[]) {
     }
     int i = 0;
     for(; i<cores; ++i) {
-        pool.push_back(new Task(i, &global_deque, cores));
+        pool.push_back(new Task(i, cores));
     }
-    
     pool[0]->push_back(create_work(&X, &Y, &Z, 0, 0, 0, 0, 0, 0, n, NULL));
     using namespace std::chrono;    
     high_resolution_clock::time_point start_time = high_resolution_clock::now();
 
     int numEvents = 1;
     long long values[1];
-    int events[1] = {PAPI_L2_TCM};
+    int events[1] = {PAPI_L1_TCM};
 
     if (PAPI_start_counters(events, numEvents) != PAPI_OK) {
             handle_error(1);
     }
-
 
     // cilk spawn each thread in the pool
     for(int i = 0; i<cores-1; ++i) {
@@ -289,11 +302,13 @@ int main(int argc, char* argv[]) {
             handle_error(1);
     }
 
+    std::cout<<"L1 misses: "<<values[0] << " for size " <<  argv[1] << " and cores " << argv[2] <<  std::endl;
 
     // std::cout << "Exectution Time: " << time_span.count() << " seconds.";
-    std::cout<<"L2 misses: "<<values[0] << " for size " <<  argv[1] << " and cores " << argv[2] <<  std::endl;
     std::cout << std::endl;
+
     //printMatrix(Z, n);
     
     return 1;
 }
+
