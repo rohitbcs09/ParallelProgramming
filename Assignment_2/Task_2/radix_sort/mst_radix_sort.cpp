@@ -3,14 +3,20 @@
 #include <vector>
 #include <algorithm>
 #include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
 #include <chrono>
+#include <sstream>
+#include <string>
+#include <fstream>
+#include <unordered_map>
+#include <cmath>
 
 using namespace std;
 
 typedef struct edge {
-    int u;
-    int v;
-    int w;
+    uint64_t u;
+    uint64_t v;
+    double w;
 } Edge;
 
 typedef std::vector<Edge*> EdgeList;
@@ -22,7 +28,11 @@ uint64_t fastrand() {
   return (g_seed>>16) & 0x7FFF; 
 }
 
-Edge* createEdge(int u, int v, int w) {
+void Par_Counting_Rank(std::vector<uint64_t> &S, uint64_t nums, uint64_t d,
+                        std::vector<uint64_t> &r, uint64_t processor);
+
+
+Edge* createEdge(uint64_t u, uint64_t v, double w) {
     Edge *edge = new Edge;
     edge->u = u;
     edge->v = v;
@@ -40,16 +50,16 @@ Edge* copy_edge(Edge *orig) {
 
 void deep_copy(std::vector<Edge*> &copy, 
                std::vector<Edge*> &orig) {          
-    for(int i = 0; i<orig.size(); ++i){
+    for(uint64_t i = 0; i<orig.size(); ++i){
         copy.push_back(copy_edge(orig[i]));
     }
 }
 
 void print(std::vector<Edge*> &edge_list) {
-    for(int i = 0; i< edge_list.size(); ++i){
+    for(uint64_t i = 0; i< edge_list.size(); ++i){
         std::cout << "( " << edge_list[i]->u << ", "
                   << edge_list[i]->v <<  ", " 
-                  << edge_list[i]->w << " )\n";
+                  << edge_list[i]->w << " )";
     }
 }
 
@@ -59,128 +69,231 @@ struct Comparator {
     }
 };
 
-//TODO: Update this function with Radix Sort Implementation
-void Par_Simulate_Priority_CW_Radix_Sort2(int n, std::vector<Edge*> &E, std::vector<int> &R) {
-    std::vector<int> B(n, 0);
-    std::vector<int> l(n, 0);
-    std::vector<int> h(n, 0);
+uint64_t EXTRACT_BIT_SEGMENT(uint64_t num, uint64_t start_bit, uint64_t end_bit) {
+    uint64_t mask = ~(~0 << (end_bit - start_bit + 1));
+    return mask & (num >> start_bit);
+}
 
-    std::vector<int> lo(n, 0);
-    std::vector<int> hi(n, 0);
-    std::vector<int> md(n, 0);
+void Par_radix_sort(std::vector<uint64_t> &arr, uint64_t nums , uint64_t bits, uint64_t processor) {
+    std::vector<uint64_t> S(nums, 0);
+    std::vector<uint64_t> r(nums, 0);
+    std::vector<uint64_t> B(nums, 0);
 
-    int m = E.size();
+    uint64_t d = ceil(log((nums * 1.0) / processor * log (nums)));
 
-    cilk_for(int u = 0; u<n; ++u) {
-        l[u] = 1;
-        h[u] = m;
+    for(uint64_t k = 0; k < bits; ++k) {
+        uint64_t q = (k + d <= bits) ? d : (bits - k);
+
+        #pragma cilk grainsize = 8
+        cilk_for(uint64_t i = 0; i < nums; ++i) {
+	    S[i] = EXTRACT_BIT_SEGMENT(arr[i], k, k + q - 1);    
+        }
+
+ 	Par_Counting_Rank(S, nums, q, r, processor );
+
+        #pragma cilk grainsize = 8
+        cilk_for (uint64_t i = 0; i < nums; ++i) {
+	    B[r[i]] = arr[i];
+        }
+
+        #pragma cilk grainsize = 8
+        cilk_for(uint64_t i = 0; i < nums; ++i) {
+	    arr[i] = B[i];	
+        }
     }
 
-    for(int k = 1; k< 1 + log2(m); ++k){
-        cilk_for(int u = 0; u<n; ++u) {
-            B[u] = 0;
-            lo[u] = l[u];
-            hi[u] = h[u];
+}
+
+void Par_Simulate_Priority_CW_RS_2(uint64_t n, std::vector<Edge*> &E,
+         std::vector<uint64_t> &R, uint64_t processor) {
+
+    uint64_t m = E.size();
+    std::vector<uint64_t> A(m);
+    uint64_t k = std::ceil(log2(m)) + 1;
+
+    #pragma cilk grainsize = 8
+    cilk_for(uint64_t i = 0; i<m; ++i) {
+        A[i] = (E[i]->u << k) + i;
+    }
+    Par_radix_sort(A, m, k + std::ceil(log2(n)), processor); 
+    
+    #pragma cilk grainsize = 8
+    cilk_for(uint64_t i = 0; i<m; ++i) {
+        uint64_t u = (A[i] >> k);
+        uint64_t j = A[i] - (u<<k);
+        if (i == 0 || u != (A[i-1] >> k)) {
+            R[u] = j;
         }
-        cilk_for(int i = 0; i< m; ++i) {
-            int u = E[i]->u;
-            md[u] = (lo[u] + hi[u])/2;
-            if( i>=lo[u] && i<=md[u]) {
-                B[u] = 1;
-            }
+    }
+}
+
+void parallel_prefix_sum(std::vector<uint64_t> &arr, uint64_t nums, std::vector<uint64_t> &indexes) {
+  
+   if (nums == 1) {
+       indexes[0] = arr[0];
+       return;
+   }
+
+   std::vector<uint64_t> y(nums/2, 0);
+   std::vector<uint64_t> z(nums/2, 0);
+
+   cilk_for(uint64_t i = 0; i < nums/2; ++i) {
+      y[i] = arr[2 * i] + arr[(2 * i) + 1];
+   }
+
+   parallel_prefix_sum(y, nums/2, z);
+
+   cilk_for (uint64_t i = 0; i < nums; ++i) {
+      if (i == 0) {
+          indexes[0] = arr[0];
+      } else if (i % 2 == 1) {
+          indexes[i] = z[i / 2];
+      } else {
+          indexes[i] = z[(i - 1)/2] + arr[i];
+      }
+   }
+}
+
+
+void Par_Counting_Rank(std::vector<uint64_t> &S, uint64_t nums, uint64_t d,
+                        std::vector<uint64_t> &r, uint64_t processor) {
+
+    std::vector<std::vector<uint64_t>> f((uint64_t) pow(2, d), 
+                std::vector<uint64_t> (processor, 0));
+    std::vector<std::vector<uint64_t>> r_1((uint64_t) pow(2, d),
+                std::vector<uint64_t> (processor, 0));   
+    std::vector<uint64_t> js(processor, 0);
+    std::vector<uint64_t> je(processor, 0);
+    std::vector<uint64_t> ofs(processor, 0);
+
+    #pragma cilk grainsize = 8
+    cilk_for(uint64_t i=0; i<processor; ++i) {
+        for (uint64_t j = 0; j<(uint64_t) pow(2,d); ++j) {
+            f[j][i] = 0;
         }
-        cilk_for(int i = 0; i< m; ++i) {
-            int u = E[i]->u;
-            md[u] = (lo[u] + hi[u])/2;
-            if( B[u] == 1 && i>=lo[u] && i<=md[u]) {
-                h[u] = md[u];
-            }
-            else if(B[u] == 0 && i>=md[u] &&
-                    i<=hi[u] ) {
-                l[u] = md[u] + 1;
-            }
+        js[i] = i * ((uint64_t) floor(nums / processor));
+        je[i] = i < processor ?  (i+1) * ((uint64_t) floor(nums / processor)) - 1 : nums - 1;
+
+        for (uint64_t j = js[i]; j <= je[i]; ++j) {
+            f[S[j]][i] = f[S[j]][i] + 1;
         }
-        cilk_for(int i = 0; i<m; ++i) {
-            int u = E[i]->u;
-            if(i==l[u]) {
-                R[u] = i;
-            }
+    }
+
+    for (uint64_t j = 0; j < (uint64_t) pow(2, d); ++j) {
+            std::vector<uint64_t> temp(processor, 0);
+            parallel_prefix_sum(f[j], processor, temp);
+        //pruint64_t_arr(temp, 3);
+            f[j] = temp;
+    }
+     
+    
+    #pragma cilk grainsize = 8
+    cilk_for (uint64_t i = 0; i < processor; ++i) {
+        ofs[i] = 0;
+        for (uint64_t j = 0; j < (uint64_t) pow(2, d); ++j) {
+           r_1[j][i] = (i == 0) ? ofs[i] : ofs[i] + f[j][i - 1];
+            ofs[i] = ofs[i] + f[j][processor - 1];
+        }
+        
+        for (uint64_t j = js[i]; j <= je[i]; ++j) {
+            r[j] = r_1[S[j]][i];
+            r_1[S[j]][i] = r_1[S[j]][i] + 1;
         }
     }
 }
 
 
-void Par_Mst_Priority_CW(int n, std::vector<Edge*> E, std::vector<int> &Mst) {
-    std::vector<int> L(n, -1);
-    std::vector<int> C(n, -1);
-    std::vector<int> R(n, -1);
+void Par_Mst_Priority_CW(uint64_t n, std::vector<Edge*> &E,
+         std::vector<uint64_t> &Mst, uint64_t processor) {
 
-    //std::sort(E.begin(), E.end(), Comparator());
-    cilk_for(int v = 0; v<n; ++v) {
+    std::vector<uint64_t> L(n+1, -1);
+    std::vector<uint64_t> C(n+1, -1);
+    std::vector<uint64_t> R(n+1, -1);
+
+    #pragma cilk grainsize = 8
+    cilk_for(uint64_t v = 1; v<=n; ++v) {
         L[v] = v;
     }
-    int m = E.size();
+    uint64_t m = E.size();
     bool flag = m > 0 ? true : false;
     while(flag) {
-        cilk_for(int v = 0; v<n; ++v) {
+        #pragma cilk grainsize = 8
+        cilk_for(uint64_t v = 1; v<=n; ++v) {
            C[v] = fastrand() % 2;
         }
 
-        Par_Simulate_Priority_CW_Radix_Sort2(n, E, R);
-
-        cilk_for(int i = 0; i<m; ++i) {
-           int u = E[i]->u; 
-           int v = E[i]->v; 
-           int w = E[i]->w; 
+        Par_Simulate_Priority_CW_RS_2(n, E, R, processor);
+        #pragma cilk grainsize = 8
+        cilk_for(uint64_t i = 0; i<m; ++i) {
+           uint64_t u = E[i]->u; 
+           uint64_t v = E[i]->v; 
+           uint64_t w = E[i]->w; 
            if( C[u] == 0 && C[v] == 1 &&
                R[u] == i) {
                L[u] = v;
                Mst[i] = 1;
            }
         }
-        cilk_for(int i = 0; i<m; ++i) {
-            E[i]->u = L[E[i]->u];
-            E[i]->v = L[E[i]->v];
+ 
+        #pragma cilk grainsize = 8
+        cilk_for(uint64_t i = 0; i<m; ++i) {
+            int u = E[i]->u;
+            int v = E[i]->v;
+            E[i]->u = L[u];
+            E[i]->v = L[v];
+            if(E[i]->u == E[i]->v) {
+                E[i]->u = 0;
+                E[i]->v = 0;
+            }
         }
         flag = false;
-        cilk_for(int i = 0; i< m; ++i) {
+        #pragma cilk grainsize = 8
+        cilk_for(uint64_t i = 0; i< m; ++i) {
             if(E[i]->u != E[i]->v) {
+                //std::cout << "IF: "<< i << " "<< E[i]->u << " " << E[i]->v << "\n";
                 flag = true;
             }
         }
     }
+
     return;
 }
 
-int main() {
+int main(int argc, char** argv) {
+
+    uint64_t processor = 1;
+
+    // Setting number of worker threads
+    if(argc > 1) {
+        __cilkrts_set_param("nworkers", argv[1]);
+        processor = atoi(argv[1]);        
+        std::cout << argv[1] << " " << processor << " \n";
+    }
 
     EdgeList edge_list;
 
-    edge_list.push_back(createEdge(0, 1, 2));
-    edge_list.push_back(createEdge(1, 0, 2));
-
-    edge_list.push_back(createEdge(1, 2, 3));
-    edge_list.push_back(createEdge(2, 1, 3));
-
-    edge_list.push_back(createEdge(0, 3, 6));
-    edge_list.push_back(createEdge(3, 0, 6));
-
-    edge_list.push_back(createEdge(1, 3, 8));
-    edge_list.push_back(createEdge(3, 1, 8));
-
-    edge_list.push_back(createEdge(3, 4, 9));
-    edge_list.push_back(createEdge(4, 3, 9));
-
-    edge_list.push_back(createEdge(1, 4, 5));
-    edge_list.push_back(createEdge(4, 1, 5));
-
-    edge_list.push_back(createEdge(2, 4, 7));
-    edge_list.push_back(createEdge(4, 2, 7));
+    std::string line;
+    //std::ifstream infile("../input_graphs/as-skitter-in.txt");
+    //std::ifstream infile("../input_graphs/com-amazon-in.txt");
+    //std::ifstream infile("../input_graphs/com-friendster-in.txt");
+    std::ifstream infile("../input_graphs/com-youtube-in.txt");
+    //std::ifstream infile("../binary_search/temp_1.txt");
+    std::getline(infile, line);
+    std::istringstream iss(line);
+    uint64_t n, m1;
+    iss >> n >> m1;
+    std::cout << n << " " << m1 << "\n";
+    while(std::getline(infile, line)) {
+        uint64_t u, v;
+        double w;
+        std::istringstream iss(line);
+        iss >> u >> v >> w; 
+        edge_list.push_back(createEdge(u, v, w));
+        edge_list.push_back(createEdge(v, u, w));
+    }
+    uint64_t m = edge_list.size();
+    std::vector<uint64_t> Mst(m, 0);
     
-    int m = edge_list.size();
-    std::vector<int> Mst(m, 0);
-    
-    //print(edge_list);
     std::sort(edge_list.begin(), edge_list.end(), Comparator());
     EdgeList copy_edge_list;
     deep_copy(copy_edge_list, edge_list);
@@ -188,18 +301,34 @@ int main() {
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-    Par_Mst_Priority_CW(5, edge_list, Mst);
+    Par_Mst_Priority_CW(n, edge_list, Mst, processor);
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
     std::cout << "Running Time: " << time_span.count() << " seconds.\n";
 
-    for(int i = 0; i<Mst.size(); ++i) {
+    std::ofstream outfile;
+    //outfile.open("output_mst_graphs/as-skitter-out.txt");
+    //outfile.open("output_mst_graphs/com-amazon-in.txt");
+    //outfile.open("output_mst_graphs/com-friendster-in.txt");
+    outfile.open("output_mst_graphs/com-youtube-in.txt");
+    //outfile.open("output_mst_graphs/temp_1.txt");
+    outfile << "Running Time: " << time_span.count() << " seconds.\n";
+    for(uint64_t i = 0; i<Mst.size(); ++i) {
         if(Mst[i]) {
             std::cout<< copy_edge_list[i]->u << " "
                      << copy_edge_list[i]->v << " "
                      << copy_edge_list[i]->w << "\n";
+        outfile << copy_edge_list[i]->u;
+            outfile << " ";
+        outfile << copy_edge_list[i]->v;
+            outfile << " ";
+        outfile << copy_edge_list[i]->w;
+            outfile << " ";
+        //outfile << i;
+        outfile << "\n";
         }
     }
+    outfile.close();
     return 1;
 }
