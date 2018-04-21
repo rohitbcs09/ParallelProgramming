@@ -19,7 +19,7 @@ static inline uint64_t fastrand() {
 
 void fill_input(std::vector<int> &arr, int msize) {
    for(int i = 0; i < msize; ++i) {
-       arr[i] = fastrand() % 10;
+       arr[i] = fastrand() % 1024;
    }
 }
 
@@ -136,19 +136,19 @@ int main(int argc, char** argv) {
 
     __cilkrts_set_param("nworkers", argv[1]);
 
-    std::vector<int> input(10, 0);
-    fill_input(input, 10);
-    print_arr(input, 10);
+    std::vector<int> input(20, 0);
+    fill_input(input, 20);
+    print_arr(input, 20);
     
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now(); 
 
-    quick_sort(input, 0, 9);
+    quick_sort(input, 0, 19);
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 
-    print_arr(input, 10);
+    print_arr(input, 20);
 
     std::cout << "CPU time used for rand-quicksort : " << time_span.count() <<  " with core " << argv[1] << std::endl;
     return 0;
