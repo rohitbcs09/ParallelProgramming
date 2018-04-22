@@ -311,15 +311,16 @@ int main(int argc, char** argv) {
         std::cout << argv[1] << "\n";
     }
 
+    if(argc < 4) {
+        std::cout << "Missing Input params - <binary> <processor> <input_file> <out_file>\n";
+        return 1;
+    }
+
     EdgeList edge_list;
     EdgeList copy_edge_list;
 
     std::string line;
-    // std::ifstream infile("../input_graphs/as-skitter-in.txt");
-    //std::ifstream infile("../input_graphs/com-amazon-in.txt");
-    //std::ifstream infile("../input_graphs/com-friendster-in.txt");
-    std::ifstream infile("../input_graphs/com-youtube-in.txt");
-    //std::ifstream infile("temp.txt");
+    std::ifstream infile(argv[2]);
     std::getline(infile, line);
     std::istringstream iss(line);
     uint64_t n, m1;
@@ -354,11 +355,7 @@ int main(int argc, char** argv) {
     std::cout << "Running Time: " << time_span.count() << " seconds.\n";
 
     std::ofstream outfile;
-    //outfile.open("output_mst_graphs/as-skitter-out.txt");
-    //outfile.open("output_mst_graphs/com-amazon-in.txt");
-    //outfile.open("output_mst_graphs/com-friendster-in.txt");
-    outfile.open("output_mst_graphs/com-youtube-in.txt");
-    //outfile.open("output_mst_graphs/temp.txt");
+    outfile.open(argv[3]);
     outfile << "Running Time: " << time_span.count() << " seconds.\n";
     for(uint64_t i = 0; i<Mst.size(); ++i) {
         if(Mst[i]) {
