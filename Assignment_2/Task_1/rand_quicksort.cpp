@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
     fill_input(input, nums);
     
 
-    print_arr(input, nums);
+    //print_arr(input, nums);
     
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now(); 
@@ -183,7 +183,21 @@ int main(int argc, char** argv) {
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 
-    print_arr(input, nums);
+    bool sorted = true;
+    for (int i = 1; i < nums; ++i) {
+      if (input[i - 1] > input[i]) {
+          sorted = false;
+          break;
+      }
+    }
+
+    if (sorted) {
+        std::cout << "Array sorted " << std::endl;
+    } else {
+        std::cout << "Array unsorted " << std::endl;
+    }
+
+    //print_arr(input, nums);
 
     std::cout << "CPU time used for rand-quicksort : " << time_span.count() <<  " with core " << argv[1] << std::endl;
     return 0;

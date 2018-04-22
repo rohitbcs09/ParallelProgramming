@@ -74,7 +74,7 @@ void Par_Counting_Rank ( std::vector<int> &S, int nums, int d, std::vector<int> 
     std::vector<int> je(processor, 0);
     std::vector<int> ofs(processor, 0);
 
-    for (int i = 0; i < processor; ++i) {
+    cilk_for (int i = 0; i < processor; ++i) {
         for (int j = 0; j < (int) pow(2, d); ++j) {
             f[j][i] = 0;
         }
@@ -98,7 +98,7 @@ void Par_Counting_Rank ( std::vector<int> &S, int nums, int d, std::vector<int> 
     }
      
     
-    for (int i = 0; i < processor; ++i) {
+    cilk_for (int i = 0; i < processor; ++i) {
         ofs[i] = 0;
         for (int j = 0; j < (int) pow(2, d); ++j) {
    	    r_1[j][i] = (i == 0) ? ofs[i] : ofs[i] + f[j][i - 1];
@@ -131,7 +131,7 @@ void radix_sort(std::vector<int> &arr, int nums , int bits, int processor) {
     for (int k = 0; k < bits; ++k) {
         int q = (k + d <= bits) ? d : (bits - k);
 
-        for (int i = 0; i < nums; ++i) {
+        cilk_for (int i = 0; i < nums; ++i) {
 	    S[i] = EXTRACT_BIT_SEGMENT(arr[i], k, k + q - 1);    
         }
 
@@ -144,11 +144,11 @@ void radix_sort(std::vector<int> &arr, int nums , int bits, int processor) {
         //print_arr(r, nums);
         //std::cout << "************************" << std::endl;
         
-	for (int i = 0; i < nums; ++i) {
+	cilk_for (int i = 0; i < nums; ++i) {
 	    B[ r[ i ] ] = arr[ i ];
         }
 
-        for (int i = 0; i < nums; ++i) {
+        cilk_for (int i = 0; i < nums; ++i) {
 	    arr[ i ] = B[ i ];	
         }
         //std::cout << "******* nums **************" << std::endl;
