@@ -80,7 +80,9 @@ void Par_Counting_Rank ( std::vector<int> &S, int nums, int d, std::vector<int> 
         }
         
 	js[i] = i * ((int) floor(nums / processor));
-        je[i] = i < processor ?  (i + 1) * ((int) floor(nums / processor)) - 1 : nums - 1;
+        je[i] = i < processor - 1 ?  (i + 1) * ((int) floor(nums / processor)) - 1 : nums - 1;
+
+        //std::cout << "start - " << js[i] << " end - " << je[i] << std::endl;
    
 
         for (int j = js[i]; j <= je[i]; ++j) {
@@ -115,7 +117,7 @@ void Par_Counting_Rank ( std::vector<int> &S, int nums, int d, std::vector<int> 
 int EXTRACT_BIT_SEGMENT(int num, int start_bit, int end_bit) {
     unsigned long mask = ~(~0 << (end_bit - start_bit + 1));
     int val = mask & (num >> start_bit);
-    std::cout << "num - " << num << " start_bit - " << start_bit << " - end_bit - " << end_bit << " - segment - " << val << std::endl;
+    //std::cout << "num - " << num << " start_bit - " << start_bit << " - end_bit - " << end_bit << " - segment - " << val << std::endl;
     return mask & (num >> start_bit);
 }
 
@@ -133,21 +135,25 @@ void radix_sort(std::vector<int> &arr, int nums , int bits, int processor) {
 	    S[i] = EXTRACT_BIT_SEGMENT(arr[i], k, k + q - 1);    
         }
 
-        std::cout << k << " - " << k + q - 1<< std::endl;
+        //std::cout << k << " - " << k + q - 1<< std::endl;
         //print_arr(S, nums); 
 
- 	Par_Counting_Rank ( S, nums, q, r, processor );
-
-        for (int i = 0; i < nums; ++i) {
+ 	Par_Counting_Rank ( S, nums, q , r, processor );
+  
+        //std::cout << "********rank***********" << std::endl;
+        //print_arr(r, nums);
+        //std::cout << "************************" << std::endl;
+        
+	for (int i = 0; i < nums; ++i) {
 	    B[ r[ i ] ] = arr[ i ];
         }
 
         for (int i = 0; i < nums; ++i) {
 	    arr[ i ] = B[ i ];	
         }
-        std::cout << "************************" << std::endl;
-        print_arr(arr, nums);
-        std::cout << "************************" << std::endl;
+        //std::cout << "******* nums **************" << std::endl;
+        //print_arr(arr, nums);
+        //std::cout << "************************" << std::endl;
 	
     }
 
@@ -162,7 +168,7 @@ int main(int argc, char** argv) {
     std::vector<int> input(nums, 0);
     fill_input(input, nums);
     
-    print_arr(input, nums);
+    //print_arr(input, nums);
     
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now(); 
@@ -191,7 +197,7 @@ int main(int argc, char** argv) {
     } else {
         std::cout << "Array unsorted " << std::endl;
     }
-    print_arr(input, nums);
+    //print_arr(input, nums);
 
     std::cout << "CPU time used for rand-quicksort : " << time_span.count() <<  " with core " << argv[1] << std::endl;
     return 0;

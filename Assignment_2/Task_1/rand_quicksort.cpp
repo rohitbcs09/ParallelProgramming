@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
 
     std::vector<int> input(nums, 0);
     fill_input(input, nums);
-
+    
 
     print_arr(input, nums);
     
