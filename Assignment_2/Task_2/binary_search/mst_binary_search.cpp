@@ -75,20 +75,20 @@ void Par_Simulate_Priority_CW_BS(uint64_t n, std::vector<Edge*> &E, std::vector<
 
     uint64_t m = E.size();
 
-    #pragma cilk grainsize = 8
+    #pragma cilk grainsize = 2048
     cilk_for(uint64_t u = 1; u<=n; ++u) {
         l[u] = 0;
         h[u] = m-1;
     }
 
     for(uint64_t k = 0; k< 1 + log2(m); ++k){
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t u = 1; u<=n; ++u) {
             B[u] = 0;
             lo[u] = l[u];
             hi[u] = h[u];
         }
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i< m; ++i) {
             uint64_t u = E[i]->u;
             md[u] = (lo[u] + hi[u])/2;
@@ -96,7 +96,7 @@ void Par_Simulate_Priority_CW_BS(uint64_t n, std::vector<Edge*> &E, std::vector<
                 B[u] = 1;
             }
         }
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i< m; ++i) {
             uint64_t u = E[i]->u;
             md[u] = (lo[u] + hi[u])/2;
@@ -108,7 +108,7 @@ void Par_Simulate_Priority_CW_BS(uint64_t n, std::vector<Edge*> &E, std::vector<
                 l[u] = md[u] + 1;
             }
         }
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i<m; ++i) {
             uint64_t u = E[i]->u;
             if(i==l[u]) {
@@ -128,12 +128,14 @@ void parallel_prefix_sum(std::vector<uint64_t> &arr, uint64_t nums, std::vector<
    std::vector<uint64_t> y(nums/2, 0);
    std::vector<uint64_t> z(nums/2, 0);
 
+   #pragma cilk grainsize = 2048
    cilk_for(int i = 0; i < nums/2; ++i) {
       y[i] = arr[2 * i] + arr[(2 * i) + 1];
    }
 
    parallel_prefix_sum(y, nums/2, z);
 
+   #pragma cilk grainsize = 2048
    cilk_for (int i = 0; i < nums; ++i) {
       if (i == 0) {
           indexes[0] = arr[0];
@@ -150,20 +152,20 @@ void Par_Mst_Priority_CW(uint64_t n, std::vector<Edge*> &E, std::vector<uint64_t
     std::vector<uint64_t> C(n+1, -1);
     std::vector<uint64_t> R(n+1, -1);
 
-    #pragma cilk grainsize = 8
+    #pragma cilk grainsize = 2048
     cilk_for(uint64_t v = 1; v<=n; ++v) {
         L[v] = v;
     }
     uint64_t m = E.size();
     bool flag = m > 0 ? true : false;
     while(flag) {
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t v = 1; v<=n; ++v) {
            C[v] = fastrand() % 2;
         }
 
         Par_Simulate_Priority_CW_BS(n, E, R);
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i<m; ++i) {
            uint64_t u = E[i]->u; 
            uint64_t v = E[i]->v; 
@@ -175,7 +177,7 @@ void Par_Mst_Priority_CW(uint64_t n, std::vector<Edge*> &E, std::vector<uint64_t
            }
         }
  
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i<m; ++i) {
             int u = E[i]->u;
             int v = E[i]->v;
@@ -187,7 +189,7 @@ void Par_Mst_Priority_CW(uint64_t n, std::vector<Edge*> &E, std::vector<uint64_t
             }
         }
         flag = false;
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i< m; ++i) {
             if(E[i]->u != E[i]->v) {
                 //std::cout << "IF: "<< i << " "<< E[i]->u << " " << E[i]->v << "\n";
@@ -253,16 +255,12 @@ int main(int argc, char** argv) {
     outfile << "Running Time: " << time_span.count() << " seconds.\n";
     for(uint64_t i = 0; i<Mst.size(); ++i) {
         if(Mst[i]) {
-            /*std::cout<< copy_edge_list[i]->u << " "
-                     << copy_edge_list[i]->v << " "
-                     << copy_edge_list[i]->w << "\n";*/
 	    outfile << copy_edge_list[i]->u;
             outfile << " ";
 	    outfile << copy_edge_list[i]->v;
             outfile << " ";
 	    outfile << copy_edge_list[i]->w;
             outfile << " ";
-	    //outfile << i;
 	    outfile << "\n";
         }
     }

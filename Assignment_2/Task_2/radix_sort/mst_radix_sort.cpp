@@ -13,6 +13,10 @@
 
 using namespace std;
 
+uint64_t toss_count = 0;
+
+uint64_t processor = 1;
+
 typedef struct edge {
     uint64_t u;
     uint64_t v;
@@ -21,7 +25,7 @@ typedef struct edge {
 
 typedef std::vector<Edge*> EdgeList;
 
-uint64_t g_seed = time(0);
+uint64_t g_seed;
 
 uint64_t fastrand() {
   g_seed = (214013 * g_seed + 2531011); 
@@ -75,29 +79,29 @@ uint64_t EXTRACT_BIT_SEGMENT(uint64_t num, uint64_t start_bit, uint64_t end_bit)
 }
 
 void Par_radix_sort(std::vector<uint64_t> &arr, uint64_t nums , uint64_t bits, uint64_t processor) {
-    std::vector<uint64_t> S(nums, 0);
-    std::vector<uint64_t> r(nums, 0);
-    std::vector<uint64_t> B(nums, 0);
+    std::vector<uint64_t> S(nums);
+    std::vector<uint64_t> r(nums);
+    std::vector<uint64_t> B(nums);
 
     uint64_t d = ceil(log((nums * 1.0) / processor * log (nums)));
 
     for(uint64_t k = 0; k < bits; ++k) {
         uint64_t q = (k + d <= bits) ? d : (bits - k);
 
-        #pragma cilk grainsize = 8
-        cilk_for(uint64_t i = 0; i < nums; ++i) {
+        //#pragma cilk grainsize = 2048
+        for(uint64_t i = 0; i < nums; ++i) {
 	    S[i] = EXTRACT_BIT_SEGMENT(arr[i], k, k + q - 1);    
         }
 
  	Par_Counting_Rank(S, nums, q, r, processor );
 
-        #pragma cilk grainsize = 8
-        cilk_for (uint64_t i = 0; i < nums; ++i) {
+        //#pragma cilk grainsize = 2048
+        for (uint64_t i = 0; i < nums; ++i) {
 	    B[r[i]] = arr[i];
         }
 
-        #pragma cilk grainsize = 8
-        cilk_for(uint64_t i = 0; i < nums; ++i) {
+        //#pragma cilk grainsize = 2048
+        for(uint64_t i = 0; i < nums; ++i) {
 	    arr[i] = B[i];	
         }
     }
@@ -111,13 +115,13 @@ void Par_Simulate_Priority_CW_RS_2(uint64_t n, std::vector<Edge*> &E,
     std::vector<uint64_t> A(m);
     uint64_t k = std::ceil(log2(m)) + 1;
 
-    #pragma cilk grainsize = 8
+    #pragma cilk grainsize = 2048
     cilk_for(uint64_t i = 0; i<m; ++i) {
         A[i] = (E[i]->u << k) + i;
     }
     Par_radix_sort(A, m, k + std::ceil(log2(n)), processor); 
     
-    #pragma cilk grainsize = 8
+    #pragma cilk grainsize = 2048
     cilk_for(uint64_t i = 0; i<m; ++i) {
         uint64_t u = (A[i] >> k);
         uint64_t j = A[i] - (u<<k);
@@ -137,13 +141,15 @@ void parallel_prefix_sum(std::vector<uint64_t> &arr, uint64_t nums, std::vector<
    std::vector<uint64_t> y(nums/2, 0);
    std::vector<uint64_t> z(nums/2, 0);
 
-   cilk_for(uint64_t i = 0; i < nums/2; ++i) {
+   //#pragma cilk grainsize = 2048
+   for(uint64_t i = 0; i < nums/2; ++i) {
       y[i] = arr[2 * i] + arr[(2 * i) + 1];
    }
 
    parallel_prefix_sum(y, nums/2, z);
 
-   cilk_for (uint64_t i = 0; i < nums; ++i) {
+   //#pragma cilk grainsize = 2048
+   for (uint64_t i = 0; i < nums; ++i) {
       if (i == 0) {
           indexes[0] = arr[0];
       } else if (i % 2 == 1) {
@@ -158,39 +164,38 @@ void parallel_prefix_sum(std::vector<uint64_t> &arr, uint64_t nums, std::vector<
 void Par_Counting_Rank(std::vector<uint64_t> &S, uint64_t nums, uint64_t d,
                         std::vector<uint64_t> &r, uint64_t processor) {
 
-    std::vector<std::vector<uint64_t>> f((uint64_t) pow(2, d), 
-                std::vector<uint64_t> (processor, 0));
-    std::vector<std::vector<uint64_t>> r_1((uint64_t) pow(2, d),
-                std::vector<uint64_t> (processor, 0));   
-    std::vector<uint64_t> js(processor, 0);
-    std::vector<uint64_t> je(processor, 0);
-    std::vector<uint64_t> ofs(processor, 0);
+    std::vector<std::vector<uint64_t>> f(pow(2, d), 
+                std::vector<uint64_t> (processor));
+    std::vector<std::vector<uint64_t>> r_1(pow(2, d),
+                std::vector<uint64_t> (processor));   
+    std::vector<uint64_t> js(processor);
+    std::vector<uint64_t> je(processor);
+    std::vector<uint64_t> ofs(processor);
 
-    #pragma cilk grainsize = 8
-    cilk_for(uint64_t i=0; i<processor; ++i) {
-        for (uint64_t j = 0; j<(uint64_t) pow(2,d); ++j) {
+    //#pragma cilk grainsize = 2048
+    for(uint64_t i=0; i<processor; ++i) {
+        for (uint64_t j = 0; j<pow(2,d); ++j) {
             f[j][i] = 0;
         }
-        js[i] = i * ((uint64_t) floor(nums / processor));
-        je[i] = i < processor ?  (i+1) * ((uint64_t) floor(nums / processor)) - 1 : nums - 1;
+        js[i] = i * (floor(nums / processor));
+        je[i] = i < processor ?  (i+1) * (floor(nums / processor)) - 1 : nums - 1;
 
         for (uint64_t j = js[i]; j <= je[i]; ++j) {
             f[S[j]][i] = f[S[j]][i] + 1;
         }
     }
 
-    for (uint64_t j = 0; j < (uint64_t) pow(2, d); ++j) {
-            std::vector<uint64_t> temp(processor, 0);
+    for (uint64_t j = 0; j < pow(2, d); ++j) {
+            std::vector<uint64_t> temp(processor);
             parallel_prefix_sum(f[j], processor, temp);
-        //pruint64_t_arr(temp, 3);
             f[j] = temp;
     }
      
     
-    #pragma cilk grainsize = 8
-    cilk_for (uint64_t i = 0; i < processor; ++i) {
+    //#pragma cilk grainsize = 2048
+    for (uint64_t i = 0; i < processor; ++i) {
         ofs[i] = 0;
-        for (uint64_t j = 0; j < (uint64_t) pow(2, d); ++j) {
+        for (uint64_t j = 0; j < pow(2, d); ++j) {
            r_1[j][i] = (i == 0) ? ofs[i] : ofs[i] + f[j][i - 1];
             ofs[i] = ofs[i] + f[j][processor - 1];
         }
@@ -206,24 +211,24 @@ void Par_Counting_Rank(std::vector<uint64_t> &S, uint64_t nums, uint64_t d,
 void Par_Mst_Priority_CW(uint64_t n, std::vector<Edge*> &E,
          std::vector<uint64_t> &Mst, uint64_t processor) {
 
-    std::vector<uint64_t> L(n+1, -1);
-    std::vector<uint64_t> C(n+1, -1);
-    std::vector<uint64_t> R(n+1, -1);
+    std::vector<uint64_t> L(n+1);
+    std::vector<uint64_t> C(n+1);
+    std::vector<uint64_t> R(n+1);
 
-    #pragma cilk grainsize = 8
+    #pragma cilk grainsize = 2048
     cilk_for(uint64_t v = 1; v<=n; ++v) {
         L[v] = v;
     }
     uint64_t m = E.size();
     bool flag = m > 0 ? true : false;
     while(flag) {
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t v = 1; v<=n; ++v) {
            C[v] = fastrand() % 2;
         }
 
         Par_Simulate_Priority_CW_RS_2(n, E, R, processor);
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i<m; ++i) {
            uint64_t u = E[i]->u; 
            uint64_t v = E[i]->v; 
@@ -235,7 +240,7 @@ void Par_Mst_Priority_CW(uint64_t n, std::vector<Edge*> &E,
            }
         }
  
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i<m; ++i) {
             int u = E[i]->u;
             int v = E[i]->v;
@@ -247,37 +252,30 @@ void Par_Mst_Priority_CW(uint64_t n, std::vector<Edge*> &E,
             }
         }
         flag = false;
-        #pragma cilk grainsize = 8
+        #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i< m; ++i) {
             if(E[i]->u != E[i]->v) {
-                //std::cout << "IF: "<< i << " "<< E[i]->u << " " << E[i]->v << "\n";
                 flag = true;
             }
         }
+        ++toss_count;
     }
-
     return;
 }
 
 int main(int argc, char** argv) {
-
-    uint64_t processor = 1;
-
+    
     // Setting number of worker threads
     if(argc > 1) {
         __cilkrts_set_param("nworkers", argv[1]);
         processor = atoi(argv[1]);        
-        std::cout << argv[1] << " " << processor << " \n";
+        std::cout << "Num Processors: "  << processor << " \n";
     }
 
     EdgeList edge_list;
 
     std::string line;
-    //std::ifstream infile("../input_graphs/as-skitter-in.txt");
-    //std::ifstream infile("../input_graphs/com-amazon-in.txt");
-    //std::ifstream infile("../input_graphs/com-friendster-in.txt");
     std::ifstream infile("../input_graphs/com-youtube-in.txt");
-    //std::ifstream infile("../binary_search/temp_1.txt");
     std::getline(infile, line);
     std::istringstream iss(line);
     uint64_t n, m1;
@@ -291,6 +289,8 @@ int main(int argc, char** argv) {
         edge_list.push_back(createEdge(u, v, w));
         edge_list.push_back(createEdge(v, u, w));
     }
+    srand(time(NULL));
+    g_seed=rand();
     uint64_t m = edge_list.size();
     std::vector<uint64_t> Mst(m, 0);
     
@@ -300,35 +300,27 @@ int main(int argc, char** argv) {
 
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
-
     Par_Mst_Priority_CW(n, edge_list, Mst, processor);
-
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+
     std::cout << "Running Time: " << time_span.count() << " seconds.\n";
 
     std::ofstream outfile;
-    //outfile.open("output_mst_graphs/as-skitter-out.txt");
-    //outfile.open("output_mst_graphs/com-amazon-in.txt");
-    //outfile.open("output_mst_graphs/com-friendster-in.txt");
     outfile.open("output_mst_graphs/com-youtube-in.txt");
-    //outfile.open("output_mst_graphs/temp_1.txt");
     outfile << "Running Time: " << time_span.count() << " seconds.\n";
     for(uint64_t i = 0; i<Mst.size(); ++i) {
         if(Mst[i]) {
-            std::cout<< copy_edge_list[i]->u << " "
-                     << copy_edge_list[i]->v << " "
-                     << copy_edge_list[i]->w << "\n";
-        outfile << copy_edge_list[i]->u;
+            outfile << copy_edge_list[i]->u;
             outfile << " ";
-        outfile << copy_edge_list[i]->v;
+            outfile << copy_edge_list[i]->v;
             outfile << " ";
-        outfile << copy_edge_list[i]->w;
+            outfile << copy_edge_list[i]->w;
             outfile << " ";
-        //outfile << i;
-        outfile << "\n";
+            outfile << "\n";
         }
     }
+    std::cout << "Toss Count = " << toss_count ;
     outfile.close();
     return 1;
 }
