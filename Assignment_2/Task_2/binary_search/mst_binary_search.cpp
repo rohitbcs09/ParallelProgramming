@@ -9,6 +9,7 @@
 #include <string>
 #include <fstream>
 #include <unordered_map>
+#include <cmath>
 
 using namespace std;
 
@@ -341,7 +342,7 @@ int main(int argc, char** argv) {
     g_seed=rand();
     g_index=time(0);
 
-    quick_sort(edge_list, 0, edge_list.size() - 1, 2);
+    quick_sort(edge_list, 0, edge_list.size() - 1, 1024);
 
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
