@@ -178,7 +178,7 @@ void Par_Counting_Rank(std::vector<uint64_t> &S, uint64_t nums, uint64_t d,
             f[j][i] = 0;
         }
         js[i] = i * (floor(nums / processor));
-        je[i] = i < processor ?  (i+1) * (floor(nums / processor)) - 1 : nums - 1;
+        je[i] = i < (processor-1) ?  (i+1) * (floor(nums / processor)) - 1 : nums - 1;
 
         for (uint64_t j = js[i]; j <= je[i]; ++j) {
             f[S[j]][i] = f[S[j]][i] + 1;
