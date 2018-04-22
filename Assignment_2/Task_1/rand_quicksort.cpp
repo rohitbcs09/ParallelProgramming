@@ -122,12 +122,42 @@ int partition(std::vector<int> &arr, int left, int right) {
     return left + lt_index_max;
 }
 
+void insertion_sort(std::vector<int> &arr, int start, int end) {
+    int size = end - start + 1;
+    if (size <= 1) {
+        return;    
+    }
 
-void quick_sort(std::vector<int> &arr, int left, int right) {
+    int i = start;
+    while (i <= end) {
+        int j = i;
+        while (j >= 0 && arr[j - 1] > arr[j]) {
+	    int temp = arr[j - 1];
+            arr[j - 1] = arr[j];
+            arr[j] = temp;
+            j--;
+        }
+        i++;
+    }
+
+}
+
+
+void quick_sort(std::vector<int> &arr, int left, int right, int serial_break) {
     if (left < right) {
-        int ind = partition(arr, left, right);
-        cilk_spawn quick_sort(arr, left, ind - 1);
-        quick_sort(arr, ind + 1, right);
+        int nums = right - left + 1;
+        if (nums > serial_break) {
+            int rand_index = left + (fastrand() % nums);
+            // Replace random index element with last element
+            int temp = arr[rand_index];
+            arr[rand_index] = arr[right];
+            arr[right] = temp;
+            int ind = partition(arr, left, right);
+            cilk_spawn quick_sort(arr, left, ind - 1, serial_break);
+            quick_sort(arr, ind + 1, right, serial_break);
+        } else {
+	    insertion_sort(arr, left, right);
+        }
     }
 }
 
@@ -136,19 +166,24 @@ int main(int argc, char** argv) {
 
     __cilkrts_set_param("nworkers", argv[1]);
 
-    std::vector<int> input(20, 0);
-    fill_input(input, 20);
-    print_arr(input, 20);
+    int nums = atoi(argv[2]);
+    int serial_break = atoi(argv[3]);
+
+    std::vector<int> input(nums, 0);
+    fill_input(input, nums);
+
+
+    print_arr(input, nums);
     
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now(); 
 
-    quick_sort(input, 0, 19);
+    quick_sort(input, 0, nums - 1, serial_break);
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 
-    print_arr(input, 20);
+    print_arr(input, nums);
 
     std::cout << "CPU time used for rand-quicksort : " << time_span.count() <<  " with core " << argv[1] << std::endl;
     return 0;

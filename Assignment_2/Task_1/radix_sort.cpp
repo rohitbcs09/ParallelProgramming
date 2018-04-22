@@ -74,7 +74,7 @@ void Par_Counting_Rank ( std::vector<int> &S, int nums, int d, std::vector<int> 
     std::vector<int> je(processor, 0);
     std::vector<int> ofs(processor, 0);
 
-    cilk_for (int i = 0; i < processor; ++i) {
+    for (int i = 0; i < processor; ++i) {
         for (int j = 0; j < (int) pow(2, d); ++j) {
             f[j][i] = 0;
         }
@@ -96,7 +96,7 @@ void Par_Counting_Rank ( std::vector<int> &S, int nums, int d, std::vector<int> 
     }
      
     
-    cilk_for (int i = 0; i < processor; ++i) {
+    for (int i = 0; i < processor; ++i) {
         ofs[i] = 0;
         for (int j = 0; j < (int) pow(2, d); ++j) {
    	    r_1[j][i] = (i == 0) ? ofs[i] : ofs[i] + f[j][i - 1];
@@ -113,7 +113,9 @@ void Par_Counting_Rank ( std::vector<int> &S, int nums, int d, std::vector<int> 
 
 
 int EXTRACT_BIT_SEGMENT(int num, int start_bit, int end_bit) {
-    unsigned int mask = ~(~0 << (end_bit - start_bit + 1));
+    unsigned long mask = ~(~0 << (end_bit - start_bit + 1));
+    int val = mask & (num >> start_bit);
+    std::cout << "num - " << num << " start_bit - " << start_bit << " - end_bit - " << end_bit << " - segment - " << val << std::endl;
     return mask & (num >> start_bit);
 }
 
@@ -127,19 +129,25 @@ void radix_sort(std::vector<int> &arr, int nums , int bits, int processor) {
     for (int k = 0; k < bits; ++k) {
         int q = (k + d <= bits) ? d : (bits - k);
 
-        cilk_for (int i = 0; i < nums; ++i) {
+        for (int i = 0; i < nums; ++i) {
 	    S[i] = EXTRACT_BIT_SEGMENT(arr[i], k, k + q - 1);    
         }
 
+        std::cout << k << " - " << k + q - 1<< std::endl;
+        //print_arr(S, nums); 
+
  	Par_Counting_Rank ( S, nums, q, r, processor );
 
-        cilk_for (int i = 0; i < nums; ++i) {
+        for (int i = 0; i < nums; ++i) {
 	    B[ r[ i ] ] = arr[ i ];
         }
 
-        cilk_for (int i = 0; i < nums; ++i) {
+        for (int i = 0; i < nums; ++i) {
 	    arr[ i ] = B[ i ];	
         }
+        std::cout << "************************" << std::endl;
+        print_arr(arr, nums);
+        std::cout << "************************" << std::endl;
 	
     }
 
@@ -150,15 +158,16 @@ int main(int argc, char** argv) {
 
     __cilkrts_set_param("nworkers", argv[1]);
 
-    std::vector<int> input(20, 0);
-    fill_input(input, 20);
+    int nums = atoi(argv[2]);
+    std::vector<int> input(nums, 0);
+    fill_input(input, nums);
     
-    print_arr(input, 20);
+    print_arr(input, nums);
     
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now(); 
 
-    radix_sort(input, 20, 10, atoi(argv[1]));
+    radix_sort(input, nums, 10, atoi(argv[1]));
     
     //std::vector<int> res(20, 0);
     //Par_Counting_Rank(input, 20, 10, res, atoi(argv[1]));
@@ -167,7 +176,22 @@ int main(int argc, char** argv) {
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
     
     //print_arr(res, 20);
-    print_arr(input, 20);
+    //print_arr(input, nums);
+    
+    bool sorted = true;
+    for (int i = 1; i < nums; ++i) {
+      if (input[i - 1] > input[i]) {
+          sorted = false;
+          break;
+      }
+    } 
+
+    if (sorted) {
+        std::cout << "Array sorted " << std::endl;
+    } else {
+        std::cout << "Array unsorted " << std::endl;
+    }
+    print_arr(input, nums);
 
     std::cout << "CPU time used for rand-quicksort : " << time_span.count() <<  " with core " << argv[1] << std::endl;
     return 0;
