@@ -20,11 +20,24 @@ typedef struct edge {
 
 typedef std::vector<Edge*> EdgeList;
 
-uint64_t g_seed = time(0);
+uint64_t g_seed;
+
+int g_index;
 
 uint64_t fastrand() {
   g_seed = (214013 * g_seed + 2531011); 
   return (g_seed>>16) & 0x7FFF; 
+}
+
+int fastrand_index() {
+  g_index = (214013 * g_index + 2531011); 
+  return (g_index>>16) & 0x7FFF; 
+}
+
+void fill_input(std::vector<int> &arr, int msize) {
+   for(int i = 0; i < msize; ++i) {
+       arr[i] = fastrand_index();
+   }
 }
 
 Edge* createEdge(uint64_t u, uint64_t v, double w) {
@@ -57,12 +70,6 @@ void print(std::vector<Edge*> &edge_list) {
                   << edge_list[i]->w << " )";
     }
 }
-
-struct Comparator {
-    bool operator()(Edge* &lhs, Edge* &rhs) {
-        return lhs->w < rhs->w;
-    }
-};
 
 void Par_Simulate_Priority_CW_BS(uint64_t n, std::vector<Edge*> &E, std::vector<uint64_t> &R) {
     std::vector<uint64_t> B(n+1, 0);
@@ -118,24 +125,29 @@ void Par_Simulate_Priority_CW_BS(uint64_t n, std::vector<Edge*> &E, std::vector<
     }
 }
 
-void parallel_prefix_sum(std::vector<uint64_t> &arr, uint64_t nums, std::vector<uint64_t> &indexes) {
+void parallel_prefix_sum(std::vector<int> &arr, int nums, std::vector<int> &indexes) {
   
+   /* 
+   int num = 0;
+   for (int ind = 0; ind < nums; ++ind) {
+       num = num + arr[ind];
+       indexes[ind] = num;
+   } */
+
    if (nums == 1) {
        indexes[0] = arr[0];
        return;
    }
 
-   std::vector<uint64_t> y(nums/2, 0);
-   std::vector<uint64_t> z(nums/2, 0);
+   std::vector<int> y(nums/2, 0);
+   std::vector<int> z(nums/2, 0);
 
-   #pragma cilk grainsize = 2048
    cilk_for(int i = 0; i < nums/2; ++i) {
       y[i] = arr[2 * i] + arr[(2 * i) + 1];
    }
 
    parallel_prefix_sum(y, nums/2, z);
 
-   #pragma cilk grainsize = 2048
    cilk_for (int i = 0; i < nums; ++i) {
       if (i == 0) {
           indexes[0] = arr[0];
@@ -145,6 +157,96 @@ void parallel_prefix_sum(std::vector<uint64_t> &arr, uint64_t nums, std::vector<
           indexes[i] = z[(i - 1)/2] + arr[i];
       }
    }
+  
+}
+
+int partition(std::vector<Edge*> &arr, int left, int right) {
+    
+    int nums = right - left + 1;
+
+    std::vector<Edge*> res(nums);
+    
+    std::vector<int> less_than_flag(nums, 0);
+    std::vector<int> equal_to_flag(nums, 0);
+    std::vector<int> greater_than_flag(nums, 0);
+
+    std::vector<int> less_than_index(nums, 0);
+    std::vector<int> equal_to_index(nums, 0);
+    std::vector<int> greater_than_index(nums, 0);
+
+    cilk_for (int ind = 0; ind < nums; ind++) {
+        res[ind] = arr[left + ind];
+    }
+
+    cilk_for (int ind = 0; ind < nums; ++ind) {
+        if (arr[left + ind]->w < arr[right]->w) {
+	    less_than_flag[ind] = 1;
+	    equal_to_flag[ind] = 0;
+	    greater_than_flag[ind] = 0;
+	} else if (arr[left + ind]->w == arr[right]->w) {
+	    less_than_flag[ind] = 0;
+            equal_to_flag[ind] = 1;
+            greater_than_flag[ind] = 0;
+        } else {
+	    less_than_flag[ind] = 0;
+            equal_to_flag[ind] = 0;
+            greater_than_flag[ind] = 1;
+        }
+    }
+   parallel_prefix_sum(less_than_flag, nums, less_than_index);
+   parallel_prefix_sum(equal_to_flag, nums, equal_to_index);
+   parallel_prefix_sum(greater_than_flag, nums, greater_than_index);
+
+   int lt_index_max = less_than_index[nums - 1];
+   arr[left + lt_index_max] = res[nums - 1];
+
+    cilk_for (int ind = 0; ind < nums; ind++) {
+        if (less_than_flag[ind]) {
+            arr[left + less_than_index[ind] - 1] = res[ind];
+        } else if (equal_to_flag[ind]) {
+            arr[left + lt_index_max + equal_to_index[ind] - 1] = res[ind];
+        } else if (greater_than_index[ind]) {
+            arr[left + greater_than_index[ind] + lt_index_max + equal_to_index[nums - 1] - 1] = res[ind];
+        }
+    }
+
+    return left + lt_index_max;
+}
+
+void insertion_sort(std::vector<Edge*> &arr, int start, int end) {
+    int size = end - start + 1;
+    if (size <= 1) {
+        return;    
+    }
+    int i = start;
+    while (i <= end) {
+        int j = i;
+        while (j > start && arr[j - 1]->w > arr[j]->w) {
+	    Edge* temp = arr[j - 1];
+            arr[j - 1] = arr[j];
+            arr[j] = temp;
+            j--;
+        }
+        i++;
+    }
+}
+
+void quick_sort(std::vector<Edge*> &arr, int left, int right, int serial_break) {
+    if (left < right) {
+        int nums = right - left + 1;
+        if (nums > serial_break) {
+            //int rand_index = left + (fastrand_index() % nums);
+            // Replace random index element with last element
+            //Edge *temp = arr[rand_index];
+            //arr[rand_index] = arr[right];
+            //arr[right] = temp;
+            int ind = partition(arr, left, right);
+            /*cilk_spawn*/ quick_sort(arr, left, ind - 1, serial_break);
+            quick_sort(arr, ind + 1, right, serial_break);
+        } else {
+	    insertion_sort(arr, left, right);
+        }
+    }
 }
 
 void Par_Mst_Priority_CW(uint64_t n, std::vector<Edge*> &E, std::vector<uint64_t> &Mst) {
@@ -192,7 +294,6 @@ void Par_Mst_Priority_CW(uint64_t n, std::vector<Edge*> &E, std::vector<uint64_t
         #pragma cilk grainsize = 2048
         cilk_for(uint64_t i = 0; i< m; ++i) {
             if(E[i]->u != E[i]->v) {
-                //std::cout << "IF: "<< i << " "<< E[i]->u << " " << E[i]->v << "\n";
                 flag = true;
             }
         }
@@ -210,13 +311,14 @@ int main(int argc, char** argv) {
     }
 
     EdgeList edge_list;
+    EdgeList copy_edge_list;
 
     std::string line;
     // std::ifstream infile("../input_graphs/as-skitter-in.txt");
     //std::ifstream infile("../input_graphs/com-amazon-in.txt");
     //std::ifstream infile("../input_graphs/com-friendster-in.txt");
     std::ifstream infile("../input_graphs/com-youtube-in.txt");
-    //std::ifstream infile("temp_1.txt");
+    //std::ifstream infile("temp.txt");
     std::getline(infile, line);
     std::istringstream iss(line);
     uint64_t n, m1;
@@ -229,13 +331,17 @@ int main(int argc, char** argv) {
         iss >> u >> v >> w; 
         edge_list.push_back(createEdge(u, v, w));
         edge_list.push_back(createEdge(v, u, w));
+        copy_edge_list.push_back(createEdge(u, v, w));
+        copy_edge_list.push_back(createEdge(v, u, w));
     }
     uint64_t m = edge_list.size();
     std::vector<uint64_t> Mst(m, 0);
-    
-    std::sort(edge_list.begin(), edge_list.end(), Comparator());
-    EdgeList copy_edge_list;
-    deep_copy(copy_edge_list, edge_list);
+
+    srand(time(NULL));
+    g_seed=rand();
+    g_index=time(0);
+
+    quick_sort(edge_list, 0, edge_list.size() - 1, 2);
 
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -251,7 +357,7 @@ int main(int argc, char** argv) {
     //outfile.open("output_mst_graphs/com-amazon-in.txt");
     //outfile.open("output_mst_graphs/com-friendster-in.txt");
     outfile.open("output_mst_graphs/com-youtube-in.txt");
-    //outfile.open("output_mst_graphs/temp_1.txt");
+    //outfile.open("output_mst_graphs/temp.txt");
     outfile << "Running Time: " << time_span.count() << " seconds.\n";
     for(uint64_t i = 0; i<Mst.size(); ++i) {
         if(Mst[i]) {
