@@ -333,8 +333,6 @@ int main(int argc, char** argv) {
         iss >> u >> v >> w; 
         edge_list.push_back(createEdge(u, v, w));
         edge_list.push_back(createEdge(v, u, w));
-        copy_edge_list.push_back(createEdge(u, v, w));
-        copy_edge_list.push_back(createEdge(v, u, w));
     }
     uint64_t m = edge_list.size();
     std::vector<uint64_t> Mst(m, 0);
@@ -344,6 +342,7 @@ int main(int argc, char** argv) {
     g_index=time(0);
 
     quick_sort(edge_list, 0, edge_list.size() - 1, 1024);
+    deep_copy(copy_edge_list, edge_list);
 
     using namespace std::chrono;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -356,7 +355,6 @@ int main(int argc, char** argv) {
 
     std::ofstream outfile;
     outfile.open(argv[3]);
-    outfile << "Running Time: " << time_span.count() << " seconds.\n";
     for(uint64_t i = 0; i<Mst.size(); ++i) {
         if(Mst[i]) {
 	    outfile << copy_edge_list[i]->u;

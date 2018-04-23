@@ -98,19 +98,19 @@ void Par_radix_sort(std::vector<uint64_t> &arr, uint64_t nums , uint64_t bits, u
         uint64_t q = (k + d <= bits) ? d : (bits - k);
 
         //#pragma cilk grainsize = 2048
-        for(uint64_t i = 0; i < nums; ++i) {
+        cilk_for(uint64_t i = 0; i < nums; ++i) {
 	    S[i] = EXTRACT_BIT_SEGMENT(arr[i], k, k + q - 1);    
         }
 
  	Par_Counting_Rank(S, nums, q, r, processor );
 
         //#pragma cilk grainsize = 2048
-        for (uint64_t i = 0; i < nums; ++i) {
+        cilk_for (uint64_t i = 0; i < nums; ++i) {
 	    B[r[i]] = arr[i];
         }
 
         //#pragma cilk grainsize = 2048
-        for(uint64_t i = 0; i < nums; ++i) {
+        cilk_for(uint64_t i = 0; i < nums; ++i) {
 	    arr[i] = B[i];	
         }
     }
@@ -268,7 +268,7 @@ void Par_Counting_Rank(std::vector<uint64_t> &S, uint64_t nums, uint64_t d,
     std::vector<uint64_t> ofs(processor);
 
     //#pragma cilk grainsize = 2048
-    for(uint64_t i=0; i<processor; ++i) {
+    cilk_for(uint64_t i=0; i<processor; ++i) {
         for (uint64_t j = 0; j<pow(2,d); ++j) {
             f[j][i] = 0;
         }
@@ -361,16 +361,16 @@ int main(int argc, char** argv) {
         processor = atoi(argv[1]);        
         std::cout << "Num Processors: "  << processor << " \n";
     }
-
+    if(argc < 4) {
+        std::cout << "Missing Input params - <binary> <processor> <input_file> <output_file>\n";
+        return 1;
+    }
+    
     EdgeList edge_list;
     EdgeList copy_edge_list;
 
     std::string line;
-    // std::ifstream infile("../input_graphs/as-skitter-in.txt");
-    //std::ifstream infile("../input_graphs/com-amazon-in.txt");
-    //std::ifstream infile("../input_graphs/com-friendster-in.txt");
-    std::ifstream infile("../input_graphs/com-youtube-in.txt");
-    //std::ifstream infile("temp.txt");
+    std::ifstream infile(argv[2]);
     std::getline(infile, line);
     std::istringstream iss(line);
     uint64_t n, m1;
@@ -383,8 +383,6 @@ int main(int argc, char** argv) {
         iss >> u >> v >> w; 
         edge_list.push_back(createEdge(u, v, w));
         edge_list.push_back(createEdge(v, u, w));
-        copy_edge_list.push_back(createEdge(u, v, w));
-        copy_edge_list.push_back(createEdge(v, u, w));
     }
     uint64_t m = edge_list.size();
     std::vector<uint64_t> Mst(m, 0);
@@ -394,6 +392,7 @@ int main(int argc, char** argv) {
     g_index=time(0);
     std::cout << " Sorting...\n" ;
     quick_sort(edge_list, 0, edge_list.size() - 1, 256);
+    deep_copy(copy_edge_list, edge_list);
     std::cout << "Complete Sorting.\n" ;
 
     using namespace std::chrono;
@@ -405,14 +404,8 @@ int main(int argc, char** argv) {
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
     std::cout << "Running Time: " << time_span.count() << " seconds.\n";
-
     std::ofstream outfile;
-    //outfile.open("output_mst_graphs/as-skitter-out.txt");
-    //outfile.open("output_mst_graphs/com-amazon-in.txt");
-    //outfile.open("output_mst_graphs/com-friendster-in.txt");
-    outfile.open("output_mst_graphs/com-youtube-in.txt");
-    //outfile.open("output_mst_graphs/temp.txt");
-    outfile << "Running Time: " << time_span.count() << " seconds.\n";
+    outfile.open(argv[3]);
     std::cout << "Copying MST .... \n" ;
     for(uint64_t i = 0; i<Mst.size(); ++i) {
         if(Mst[i]) {
