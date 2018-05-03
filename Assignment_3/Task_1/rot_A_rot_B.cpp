@@ -76,13 +76,19 @@ void printMatrix(int **arr, int n) {
     }   
 }
 
+
+
 void MM_rotate_A_rotate_B(int n, int p, int rank) {
     int *mat = NULL;
+    int *copy_mat = NULL;
     int sqrt_p = std::sqrt(p);
     int proc_mat_size = n / sqrt_p;
     int mat_size[2] = {n , n};
     int sub_mat_size[2] = {proc_mat_size, proc_mat_size};
     int mat_start[2] = {0, 0};
+
+    int **copy_mat_X;
+    create_2d_array(&copy_mat_X, n, n);
 
     int **sub_matrix;
     create_2d_array(&sub_matrix, proc_mat_size, proc_mat_size);
@@ -93,52 +99,43 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
     MPI_Type_create_resized(mat_type, 0, proc_mat_size * sizeof(int), &sub_mat_type);
     MPI_Type_commit(&sub_mat_type);
     
-    int send_mat_count[proc_mat_size * proc_mat_size]; 
-    int sub_mat_start[proc_mat_size * proc_mat_size];
+    int send_mat_count[p]; 
+    int send_mat_start[p];
 
     if(rank == 0) {
         int start = 0;
         for(int i=0; i<sqrt_p; ++i){
             for(int j=0; j<sqrt_p; ++j){
                 send_mat_count[start]=1;
-                sub_mat_start[start++]= (sqrt_p * proc_mat_size * i) + j;
+                send_mat_start[start++]= (sqrt_p * proc_mat_size * i) + j;
+                std::cout << (sqrt_p * proc_mat_size * i) + j << " ";
             }
         }
-        std::cout << "\n";
-        for(int i = 0; i< sqrt_p * sqrt_p; ++i) {
-            std::cout << sub_mat_start[i] << " ";
+        /*for(int i = 0; i< sqrt_p * sqrt_p; ++i) {
+            std::cout << send_mat_start[i] << " ";
         }
-        std::cout << "\n";
+        std::cout << "\n";*/
         mat = &(X[0][0]);
+        copy_mat = &(copy_mat_X[0][0]);
     }
 
-    MPI_Scatterv(mat, &send_mat_count[0], &sub_mat_start[0], sub_mat_type, &(sub_matrix[0][0]),
-                 (n * n)/ (proc_mat_size * proc_mat_size), MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(mat, send_mat_count, send_mat_start, sub_mat_type, &(sub_matrix[0][0]),
+                 p, MPI_INT, 0, MPI_COMM_WORLD);
     
-    std::cout << "\n";
-    for(int i = 0; i< p; ++i) {
-        if(rank == i) {
-            for(int j = 0; j< n/proc_mat_size; ++j) {
-                for(int k =0; k< n/proc_mat_size; ++k) {
-                    std::cout << sub_matrix[j][k] << " ";
-                }
-                std::cout << "\n";
-            }
+    std::cout << "Rank : " << rank << "\n";
+    for(int j = 0; j< proc_mat_size; ++j) {
+        for(int k =0; k< proc_mat_size; ++k) {
+            std::cout << sub_matrix[j][k] << " ";
         }
-        MPI_Barrier(MPI_COMM_WORLD);
+        std::cout << "\n";
     }
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Gatherv(&(sub_matrix[0][0]), proc_mat_size * proc_mat_size,  MPI_INT, copy_mat, send_mat_count, 
+                send_mat_start, sub_mat_type, 0, MPI_COMM_WORLD);
 
-    /*if (rank == 0) {
-         
-        //MPI_Send(&m, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
-        //printf("Process %d sent %d \n", rank, m[0][0] );
-    } 
-    else if (rank == 1) {
-        //MPI_Recv(&m2, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD , &status );
-        //printf("Process %d received %d \n", rank, m2[0][0] );
-    }*/
-    MPI_Type_free(&sub_mat_type);
-    MPI_Finalize();
+    if(rank == 0) {
+        printMatrix(copy_mat_X, n);
+    }
     return;
 }
 
@@ -166,7 +163,7 @@ int main(int argc, char *argv[]) {
         create_2d_array(&Y, n, n);
         fillMatrix(Y, n);
 
-	create_2d_array(&Z, n, n);
+        create_2d_array(&Z, n, n);
         fillMatrix(Z, n);
     }
 
