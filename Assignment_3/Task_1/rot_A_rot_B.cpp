@@ -108,9 +108,6 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
     int sub_mat_size[2] = {proc_mat_size, proc_mat_size};
     int mat_start[2] = {0, 0};
 
-    //int **copy_mat_X;
-    //create_2d_array(&copy_mat_X, n, n);
-
     int **sub_matrix_X;
     create_2d_array(&sub_matrix_X, proc_mat_size, proc_mat_size);
 
@@ -136,7 +133,7 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
             for(int j=0; j<sqrt_p; ++j){
                 send_mat_count[start]=1;
                 send_mat_start[start++]= (sqrt_p * proc_mat_size * i) + j;
-                std::cout << (sqrt_p * proc_mat_size * i) + j << " ";
+                //std::cout << (sqrt_p * proc_mat_size * i) + j << " ";
             }
         }
         /*for(int i = 0; i< sqrt_p * sqrt_p; ++i) {
@@ -146,7 +143,6 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
         mat_X = &(X[0][0]);
         mat_Y = &(Y[0][0]);
         mat_Z = &(Z[0][0]);
-        //g_copy_mat = &(copy_mat_X[0][0]);
     }
 
     MPI_Scatterv(mat_X, send_mat_count, send_mat_start, sub_mat_type, &(sub_matrix_X[0][0]),
@@ -158,21 +154,14 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
     MPI_Scatterv(mat_Z, send_mat_count, send_mat_start, sub_mat_type, &(sub_matrix_Z[0][0]),
                  p, MPI_INT, 0, MPI_COMM_WORLD);
           
-    std::cout << "Rank : " << rank << "\n";
+    /*std::cout << "Rank : " << rank << "\n";
     for(int j = 0; j< proc_mat_size; ++j) {
         for(int k =0; k< proc_mat_size; ++k) {
             std::cout << sub_matrix_X[j][k] << " ";
         }
         std::cout << "\n";
-    }
+    }*/
     MPI_Barrier(MPI_COMM_WORLD);
-
-    //MPI_Gatherv(&(sub_matrix_X[0][0]), proc_mat_size * proc_mat_size,  MPI_INT, g_copy_mat, send_mat_count, 
-    //            send_mat_start, sub_mat_type, 0, MPI_COMM_WORLD);
-
-    //if(rank == 0) {
-    //    printMatrix(copy_mat_X, n);
-    //}
 
     int tag = 99;
     int p_src_row = rank / sqrt_p; 
@@ -260,18 +249,21 @@ int main(int argc, char *argv[]) {
         fillMatrix(Y, n);
 
         create_2d_array(&Z, n, n);
-        fillMatrix(Z, n);
+        init_sub_matrix(Z, n, n);
     }
 
-    MM_rotate_A_rotate_B(n, processors, myrank);
 
     using namespace std::chrono;    
     high_resolution_clock::time_point start_time = high_resolution_clock::now();
 
+    MM_rotate_A_rotate_B(n, processors, myrank);
+
     high_resolution_clock::time_point end_time = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
 
-    //std::cout << "Exectution Time: " << time_span.count() << " seconds.";
-    //std::cout << std::endl;
+    if(myrank == 0) {
+        std::cout << "Exectution Time: " << time_span.count() << " seconds.";
+        std::cout << std::endl;
+    }
     return 1;
 }
