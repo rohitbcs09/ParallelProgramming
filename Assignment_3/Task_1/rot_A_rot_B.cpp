@@ -145,14 +145,14 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
         mat_Z = &(Z[0][0]);
     }
 
-    MPI_Scatterv(mat_X, send_mat_count, send_mat_start, sub_mat_type, &(sub_matrix_X[0][0]),
-                 p, MPI_INT, 0, MPI_COMM_WORLD);
+MPI_Scatterv(mat_X, send_mat_count, send_mat_start, sub_mat_type, &(sub_matrix_X[0][0]),
+                 proc_mat_size * proc_mat_size, MPI_INT, 0, MPI_COMM_WORLD);
  
     MPI_Scatterv(mat_Y, send_mat_count, send_mat_start, sub_mat_type, &(sub_matrix_Y[0][0]),
-                 p, MPI_INT, 0, MPI_COMM_WORLD);
+                 proc_mat_size * proc_mat_size, MPI_INT, 0, MPI_COMM_WORLD);
  
     MPI_Scatterv(mat_Z, send_mat_count, send_mat_start, sub_mat_type, &(sub_matrix_Z[0][0]),
-                 p, MPI_INT, 0, MPI_COMM_WORLD);
+                 proc_mat_size * proc_mat_size, MPI_INT, 0, MPI_COMM_WORLD);
           
     /*std::cout << "Rank : " << rank << "\n";
     for(int j = 0; j< proc_mat_size; ++j) {
