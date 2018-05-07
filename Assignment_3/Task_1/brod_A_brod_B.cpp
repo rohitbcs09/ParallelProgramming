@@ -66,13 +66,6 @@ void fillMatrixVal(int **arr, int n, int val) {
     }
 }
 
-void copy_matrix(int **src, int **dest, int row, int col) {
-    for(int i = 0; i < row; ++i) {
-        for(int j = 0; j< col; ++j) {
-            dest[i][j] = src[i][j];
-        }
-    }
-}
 
 void printMatrix(int **arr, int n) {
      std::cout << "\n";
@@ -200,17 +193,17 @@ void MM_broadcast_A_broadcast_B(int n, int p, int rank) {
     for(int l = 1; l <= sqrt_p; l++) {
         int k = (l - 1);
         if (k == p_src_row) {
-           copy_matrix(sub_matrix_Y, b_bcast_ptr, proc_mat_size, proc_mat_size); 
+           b_bcast_ptr = sub_matrix_Y;
         }
 
         if (k == p_src_col) {
-            copy_matrix(sub_matrix_X, a_bcast_ptr, proc_mat_size, proc_mat_size);
+	    a_bcast_ptr = sub_matrix_X;
         }
 
-        MPI_Bcast(b_g_bcast_ptr, proc_mat_size * proc_mat_size, MPI_INT, 
+        MPI_Bcast(&(b_bcast_ptr[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 
                   k, col_comm);
 
-        MPI_Bcast(a_g_bcast_ptr, proc_mat_size * proc_mat_size, MPI_INT,
+        MPI_Bcast(&(a_bcast_ptr[0][0]), proc_mat_size * proc_mat_size, MPI_INT,
                   k, row_comm);
 
         Matrix_Multiply(a_bcast_ptr, b_bcast_ptr, sub_matrix_Z,
