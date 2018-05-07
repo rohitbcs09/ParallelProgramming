@@ -123,7 +123,11 @@ void MM_rotate_A_broadcast_B(int n, int p, int rank) {
     MPI_Type_create_subarray(2, mat_size, sub_mat_size, mat_start, MPI_ORDER_C, MPI_INT, &mat_type);
     MPI_Type_create_resized(mat_type, 0, proc_mat_size * sizeof(int), &sub_mat_type);
     MPI_Type_commit(&sub_mat_type);
-    
+
+    int color = rank % sqrt_p;
+    MPI_Comm col_comm;
+    MPI_Comm_split(MPI_COMM_WORLD, color, rank, &col_comm);
+
     int send_mat_count[p]; 
     int send_mat_start[p];
 
@@ -153,6 +157,8 @@ void MM_rotate_A_broadcast_B(int n, int p, int rank) {
  
     MPI_Scatterv(mat_Z, send_mat_count, send_mat_start, sub_mat_type, &(sub_matrix_Z[0][0]),
                  proc_mat_size * proc_mat_size, MPI_INT, 0, MPI_COMM_WORLD);
+
+    MPI_Barrier(MPI_COMM_WORLD);
           
     /*std::cout << "Rank : " << rank << "\n";
     for(int j = 0; j< proc_mat_size; ++j) {
@@ -162,14 +168,6 @@ void MM_rotate_A_broadcast_B(int n, int p, int rank) {
         std::cout << "\n";
     }*/
 
-    int color = rank % sqrt_p;
-
-    MPI_Comm col_comm;
-    MPI_Comm_split(MPI_COMM_WORLD, color, rank, &col_comm);
-
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
     int tag = 99;
     int p_src_row = rank / sqrt_p; 
     int p_src_col = rank % sqrt_p;
@@ -177,37 +175,31 @@ void MM_rotate_A_broadcast_B(int n, int p, int rank) {
     int x_send_to_p_dst_row = p_src_row;     
     int x_recv_from_p_src_row = p_src_row;
 
-    /*int **bcast_ptr;
+    int **bcast_ptr; 
     create_2d_array(&bcast_ptr, proc_mat_size, proc_mat_size);
     init_sub_matrix(bcast_ptr, proc_mat_size, proc_mat_size);
-    int *g_bcast_ptr = &(bcast_ptr[0][0]);*/
-	
+    int *g_bcast_ptr = &(bcast_ptr[0][0]);
+    
     for(int l = 1; l <= sqrt_p; l++) {
-        
-        // Broad cast
-        int k = l + p_src_col - 1;
-        //std::cout << "j = " << p_src_col << " l = " << l << " i = " << p_src_row << " bcast rank = "  << (rank - p_src_col) / n << std::endl;
-        /*if (k == p_src_row) {
-            g_bcast_ptr = &(sub_matrix_Y[0][0]);;
-        }*/
-	
-	MPI_Bcast(&(sub_matrix_Y[0][0]), proc_mat_size * proc_mat_size, MPI_INT, (p_src_col + l) % sqrt_p , col_comm);
-	//MPI_Bcast(g_bcast_ptr, proc_mat_size * proc_mat_size, MPI_INT, (p_src_col + l) % sqrt_p , col_comm);
-
-        Matrix_Multiply(sub_matrix_X, sub_matrix_Y, sub_matrix_Z,
+        int k = (l + p_src_col - 1) % sqrt_p;
+        if (k == p_src_row) {
+           bcast_ptr = sub_matrix_Y; 
+        }
+        MPI_Bcast(&(bcast_ptr[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 
+                  k, col_comm);
+        Matrix_Multiply(sub_matrix_X, bcast_ptr, sub_matrix_Z,
                         0, 0, 0, 0, 0, 0, proc_mat_size);
 
-	if (l < sqrt_p) {
+        if (l <= sqrt_p) {
+            int x_send_to_p_dst_col = (sqrt_p + p_src_col - 1) % sqrt_p; 
+            int x_p_dst_rank = (sqrt_p * x_send_to_p_dst_row ) + x_send_to_p_dst_col;
 
-        	int x_send_to_p_dst_col = (sqrt_p + p_src_col - 1) % sqrt_p; 
-        	int x_p_dst_rank = (sqrt_p * x_send_to_p_dst_row ) + x_send_to_p_dst_col;
+            int x_recv_from_p_src_col = (sqrt_p + p_src_col + 1) % sqrt_p; 
+            int x_p_src_rank = (sqrt_p * x_recv_from_p_src_row ) + x_recv_from_p_src_col;
 
-        	int x_recv_from_p_src_col = (sqrt_p + p_src_col + 1) % sqrt_p; 
-        	int x_p_src_rank = (sqrt_p * x_recv_from_p_src_row ) + x_recv_from_p_src_col;
-
-        	MPI_Sendrecv_replace(&(sub_matrix_X[0][0]), proc_mat_size * proc_mat_size, MPI_INT,
+            MPI_Sendrecv_replace(&(sub_matrix_X[0][0]), proc_mat_size * proc_mat_size, MPI_INT,
                                   x_p_dst_rank, tag, x_p_src_rank, tag, MPI_COMM_WORLD, &status); 
-	}
+        }
     }
 
 
