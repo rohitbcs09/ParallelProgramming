@@ -66,14 +66,6 @@ void fillMatrixVal(int **arr, int n, int val) {
     }
 }
 
-void copy_matrix(int **src, int **dest, int row, int col) {
-    for(int i = 0; i < row; ++i) {
-        for(int j = 0; j< col; ++j) {
-            dest[i][j] = src[i][j];
-        }
-    }
-}
-
 void printMatrix(int **arr, int n) {
      std::cout << "\n";
      for(int i = 0; i<n; ++i) {
@@ -191,9 +183,9 @@ void MM_rotate_A_broadcast_B(int n, int p, int rank) {
     for(int l = 1; l <= sqrt_p; l++) {
         int k = (l + p_src_col - 1) % sqrt_p;
         if (k == p_src_row) {
-           copy_matrix(sub_matrix_Y, bcast_ptr, proc_mat_size, proc_mat_size); 
+           bcast_ptr = sub_matrix_Y; 
         }
-        MPI_Bcast(g_bcast_ptr, proc_mat_size * proc_mat_size, MPI_INT, 
+        MPI_Bcast(&(bcast_ptr[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 
                   k, col_comm);
         Matrix_Multiply(sub_matrix_X, bcast_ptr, sub_matrix_Z,
                         0, 0, 0, 0, 0, 0, proc_mat_size);
