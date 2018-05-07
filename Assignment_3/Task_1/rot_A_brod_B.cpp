@@ -66,6 +66,14 @@ void fillMatrixVal(int **arr, int n, int val) {
     }
 }
 
+void copy_matrix(int **src, int **dest, int row, int col) {
+    for(int i = 0; i < row; ++i) {
+        for(int j = 0; j< col; ++j) {
+            dest[i][j] = src[i][j];
+        }
+    }
+}
+
 void printMatrix(int **arr, int n) {
      std::cout << "\n";
      for(int i = 0; i<n; ++i) {
@@ -125,9 +133,9 @@ void MM_rotate_A_broadcast_B(int n, int p, int rank) {
     MPI_Type_commit(&sub_mat_type);
 
     int color = rank % sqrt_p;
-    MPI_Comm col_comm[sqrt_p];
-    MPI_Comm_split(MPI_COMM_WORLD, color, rank, &col_comm[(rank % sqrt_p)]);
-   
+    MPI_Comm col_comm;
+    MPI_Comm_split(MPI_COMM_WORLD, color, rank, &col_comm);
+
     int send_mat_count[p]; 
     int send_mat_start[p];
 
@@ -175,36 +183,31 @@ void MM_rotate_A_broadcast_B(int n, int p, int rank) {
     int x_send_to_p_dst_row = p_src_row;     
     int x_recv_from_p_src_row = p_src_row;
 
-    int **bcast_ptr;
+    int **bcast_ptr; 
     create_2d_array(&bcast_ptr, proc_mat_size, proc_mat_size);
     init_sub_matrix(bcast_ptr, proc_mat_size, proc_mat_size);
     int *g_bcast_ptr = &(bcast_ptr[0][0]);
-	
+    
     for(int l = 1; l <= sqrt_p; l++) {
         int k = (l + p_src_col - 1) % sqrt_p;
         if (k == p_src_row) {
-           g_bcast_ptr = &(sub_matrix_Y[0][0]);
-	}
+           copy_matrix(sub_matrix_Y, bcast_ptr, proc_mat_size, proc_mat_size); 
+        }
         MPI_Bcast(g_bcast_ptr, proc_mat_size * proc_mat_size, MPI_INT, 
-                  k, col_comm[(rank % sqrt_p)]);
-
-        //MPI_Barrier(col_comm);
-	//MPI_Bcast(g_bcast_ptr, proc_mat_size * proc_mat_size, MPI_INT, (p_src_col + l) % sqrt_p , col_comm);
-
+                  k, col_comm);
         Matrix_Multiply(sub_matrix_X, bcast_ptr, sub_matrix_Z,
                         0, 0, 0, 0, 0, 0, proc_mat_size);
 
-	if (l < sqrt_p) {
+        if (l <= sqrt_p) {
+            int x_send_to_p_dst_col = (sqrt_p + p_src_col - 1) % sqrt_p; 
+            int x_p_dst_rank = (sqrt_p * x_send_to_p_dst_row ) + x_send_to_p_dst_col;
 
-        	int x_send_to_p_dst_col = (sqrt_p + p_src_col - 1) % sqrt_p; 
-        	int x_p_dst_rank = (sqrt_p * x_send_to_p_dst_row ) + x_send_to_p_dst_col;
+            int x_recv_from_p_src_col = (sqrt_p + p_src_col + 1) % sqrt_p; 
+            int x_p_src_rank = (sqrt_p * x_recv_from_p_src_row ) + x_recv_from_p_src_col;
 
-        	int x_recv_from_p_src_col = (sqrt_p + p_src_col + 1) % sqrt_p; 
-        	int x_p_src_rank = (sqrt_p * x_recv_from_p_src_row ) + x_recv_from_p_src_col;
-
-        	MPI_Sendrecv_replace(&(sub_matrix_X[0][0]), proc_mat_size * proc_mat_size, MPI_INT,
+            MPI_Sendrecv_replace(&(sub_matrix_X[0][0]), proc_mat_size * proc_mat_size, MPI_INT,
                                   x_p_dst_rank, tag, x_p_src_rank, tag, MPI_COMM_WORLD, &status); 
-	}
+        }
     }
 
 
