@@ -18,6 +18,8 @@ std::set<int> vertices;
 
 long int mst_weight = 0;	
 
+int mst_edge_count = 0;
+
 unordered_map<int, int> parent;
 
 std::unordered_map<int, std::unordered_map<int, int> > Adj_list;
@@ -123,7 +125,8 @@ void fredman_tarjan(UnionFind disjoint_set) {
 
 				priority_queue.pop();
 				mst_weight += edge.w;	
-
+                ++mst_edge_count;
+                
 				disjoint_set.union_set(edge.v, *vertex);
 
 				auto v_edge_iter = Adj_list[edge.v];
@@ -206,7 +209,7 @@ void fredman_tarjan(UnionFind disjoint_set) {
 int main () {
 	time_t start_time,end_time;
 	ifstream f;
-	f.open("graphFile.txt");
+	f.open("Test/output_graph_2.txt");
 	while(1) {
 		string vertex;
 		f>>vertex;
@@ -237,6 +240,7 @@ int main () {
     std::cout << "Running Time: " << time_span.count() << " seconds.\n";
 
 	cout<<"The weight of the MST is "<<mst_weight<<endl;
+	cout<<"The number of edges in MST are "<<mst_edge_count<<endl;
 
 	return 1;
 }
