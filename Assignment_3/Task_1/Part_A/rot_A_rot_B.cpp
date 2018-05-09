@@ -53,7 +53,7 @@ void fillMatrix(int **arr, int n) {
     int count = 0;
     for(int i = 0; i<n; ++i) {
         for(int j = 0; j<n; ++j) {
-            arr[i][j] = ++count; //fastrand();
+            arr[i][j] = /*++count; */ fastrand();
         }
     }
 }
@@ -135,11 +135,6 @@ int * get_buff_copy(int rank,int  **arr, int size, int procs) {
 }
 
 void MM_rotate_A_rotate_B(int n, int p, int rank) {
-    int *mat_X = NULL;
-    int *mat_Y = NULL;
-    int *mat_Z = NULL;
-    int *g_copy_mat = NULL;
-
     int sqrt_p = std::sqrt(p);
     int proc_mat_size = n / sqrt_p;
     int mat_size[2] = {n , n};
@@ -162,46 +157,39 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
     MPI_Type_create_resized(mat_type, 0, proc_mat_size * sizeof(int), &sub_mat_type);
     MPI_Type_commit(&sub_mat_type);
     
-    int send_mat_count[p]; 
-    int send_mat_start[p];
 
+    MPI_Status x_status[n];
+    MPI_Status y_status[n];
+    MPI_Status z_status[n];
 
-    MPI_Status x_status;
-    MPI_Status y_status;
-    MPI_Status z_status;
-
-    MPI_Request x_request = MPI_REQUEST_NULL;
-    MPI_Request y_request = MPI_REQUEST_NULL;
-    MPI_Request z_request = MPI_REQUEST_NULL;
-    
     int x_tag = 40;
     int y_tag = 41;
     int z_tag = 42;
 
     if(rank == 0) {
-        int start = 0;
-        for(int i=0; i<sqrt_p; ++i){
-            for(int j=0; j<sqrt_p; ++j){
-                send_mat_count[start]=1;
-                send_mat_start[start++]= (sqrt_p * proc_mat_size * i) + j;
-                //std::cout << (sqrt_p * proc_mat_size * i) + j << " ";
-            }
-        }
 
-        mat_X = &(X[0][0]);
-        mat_Y = &(Y[0][0]);
-        mat_Z = &(Z[0][0]);
-        
+	for (int i = 0; i < proc_mat_size; ++i) {
+	   for (int j = 0; j < proc_mat_size; ++j) {
+               sub_matrix_X[i][j] = *(*X + i * n + j);
+	       sub_matrix_Y[i][j] = *(*Y + i * n + j);
+	       sub_matrix_Z[i][j] = *(*Z + i * proc_mat_size + j);
+	   }
+	}
+
+
         // send to all processors
-        for (int i = 0; i < sqrt_p * sqrt_p; ++i) {
+        for (int i = 1; i < sqrt_p * sqrt_p; ++i) {
             int *sub_X = get_buff_copy(i, X, n, p);
-            MPI_Isend(sub_X, proc_mat_size * proc_mat_size, MPI_INT, i, x_tag, MPI_COMM_WORLD, &x_request);
+            //MPI_Isend(sub_X, proc_mat_size * proc_mat_size, MPI_INT, i, x_tag, MPI_COMM_WORLD, &x_request[i]);
+            MPI_Send(sub_X, proc_mat_size * proc_mat_size, MPI_INT, i, x_tag, MPI_COMM_WORLD);
 
             int *sub_Y = get_buff_copy(i, Y, n, p);
-            MPI_Isend(sub_Y, proc_mat_size * proc_mat_size, MPI_INT, i, y_tag, MPI_COMM_WORLD, &y_request);
+            //MPI_Isend(sub_Y, proc_mat_size * proc_mat_size, MPI_INT, i, y_tag, MPI_COMM_WORLD, &y_request[i]);
+            MPI_Send(sub_Y, proc_mat_size * proc_mat_size, MPI_INT, i, y_tag, MPI_COMM_WORLD);
 
             int *sub_Z = get_buff_copy(i, Z, n, p);
-            MPI_Isend(sub_Z, proc_mat_size * proc_mat_size, MPI_INT, i, z_tag, MPI_COMM_WORLD, &z_request);
+            //MPI_Isend(sub_Z, proc_mat_size * proc_mat_size, MPI_INT, i, z_tag, MPI_COMM_WORLD, &z_request[i]);
+            MPI_Send(sub_Z, proc_mat_size * proc_mat_size, MPI_INT, i, z_tag, MPI_COMM_WORLD);
 
             free(sub_X);
             free(sub_Y);
@@ -210,13 +198,18 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
 
     } 
 
-    MPI_Irecv(&(sub_matrix_X[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, x_tag, MPI_COMM_WORLD, &x_request);
-    MPI_Irecv(&(sub_matrix_Y[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, y_tag, MPI_COMM_WORLD, &y_request);
-    MPI_Irecv(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, z_tag, MPI_COMM_WORLD, &z_request);
+    if (rank != 0) {
+        //MPI_Irecv(&(sub_matrix_X[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, x_tag, MPI_COMM_WORLD, &x_request[rank]);
+        MPI_Recv(&(sub_matrix_X[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, x_tag, MPI_COMM_WORLD, &x_status[rank]);
+        //MPI_Irecv(&(sub_matrix_Y[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, y_tag, MPI_COMM_WORLD, &y_request[rank]);
+        MPI_Recv(&(sub_matrix_Y[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, y_tag, MPI_COMM_WORLD, &y_status[rank]);
+        //MPI_Irecv(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, z_tag, MPI_COMM_WORLD, &z_request[rank]);
+        MPI_Recv(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, z_tag, MPI_COMM_WORLD, &z_status[rank]);
     
-    MPI_Wait(&x_request, &x_status);
-    MPI_Wait(&y_request, &y_status);
-    MPI_Wait(&z_request, &z_status);
+        //MPI_Wait(&x_request[rank], &x_status[rank]);
+        //MPI_Wait(&y_request[rank], &y_status[rank]);
+        //MPI_Wait(&z_request[rank], &z_status[rank]);
+    }
 
 
     /*
@@ -229,7 +222,6 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
     }
     */
     
-    MPI_Barrier(MPI_COMM_WORLD);
 
     int tag = 99;
     int p_src_row = rank / sqrt_p; 
@@ -282,13 +274,13 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
                                  y_p_dst_rank, tag, y_p_src_rank, tag, MPI_COMM_WORLD, &status);
     }
 
-    int rcv_tag[sqrt_p];
-    MPI_Status rcv_status;
-    MPI_Request rcv_request = MPI_REQUEST_NULL;
-    for (int i = 0; i < sqrt_p; ++i) {
+    int rcv_tag = 232;
+    MPI_Status rcv_status[n];
+    MPI_Request rcv_request[n];
+    /*for (int i = 0; i < sqrt_p; ++i) {
         rcv_tag[i] = 700 + i;
         //std::cout << " receive tag - " << rcv_tag[i] << std::endl;
-    }
+    }*/
     
 
     /* 
@@ -301,14 +293,19 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
     }
     */
     
-    
-    MPI_Isend(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, rcv_tag[rank], MPI_COMM_WORLD, &rcv_request);
+    if (rank != 0) {
+	//MPI_Isend(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, rcv_tag, MPI_COMM_WORLD, &rcv_request[rank]);
+	MPI_Send(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, rcv_tag, MPI_COMM_WORLD);
+    }
 
     if (rank == 0) {
-        for (int i = 0; i < sqrt_p * sqrt_p; ++i) {
+	update_result(&(sub_matrix_Z[0][0]), 0, Z, n , p);
+        for (int i = 1; i < sqrt_p * sqrt_p; ++i) {
             int *temp = (int *)malloc(proc_mat_size*proc_mat_size*sizeof(int));
-            MPI_Irecv(temp, proc_mat_size * proc_mat_size, MPI_INT, i, rcv_tag[i], MPI_COMM_WORLD, &rcv_request);
-            MPI_Wait(&rcv_request, &rcv_status);
+            //MPI_Irecv(temp, proc_mat_size * proc_mat_size, MPI_INT, i, rcv_tag, MPI_COMM_WORLD, &rcv_request[i]);
+            MPI_Recv(temp, proc_mat_size * proc_mat_size, MPI_INT, i, rcv_tag, MPI_COMM_WORLD, &rcv_status[i]);
+            //MPI_Wait(&rcv_request[i], &rcv_status[i]);
+	    //rcv_request[i] = MPI_REQUEST_NULL;
             /*
             std::cout << "rank : " << i  << " TAG - "<< rcv_tag[i] << std::endl;
             for (int j = 0; j < proc_mat_size * proc_mat_size; ++j) {
@@ -322,18 +319,20 @@ void MM_rotate_A_rotate_B(int n, int p, int rank) {
     }
 
 
-
-
-
-
     //MPI_Gatherv(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size,  MPI_INT, mat_Z, send_mat_count, 
     //            send_mat_start, sub_mat_type, 0, MPI_COMM_WORLD);
 
+    /*
     if(rank == 0) {
         std::cout << "\nMASTER OUTPUT:\n";
         printMatrix(Z, n);
     }
+    */
 
+    //MPI_TYPE_FREE(&sub_mat_type);
+    delete_2d_array(&sub_matrix_X);
+    delete_2d_array(&sub_matrix_Y);
+    delete_2d_array(&sub_matrix_Z);
     return;
 }
 
@@ -356,7 +355,7 @@ int main(int argc, char *argv[]) {
     if(myrank == 0) {
         create_2d_array(&X, n, n);
         fillMatrix(X, n);
-        printMatrix(X, n);
+        //printMatrix(X, n);
 
         create_2d_array(&Y, n, n);
         fillMatrix(Y, n);
@@ -364,7 +363,6 @@ int main(int argc, char *argv[]) {
         create_2d_array(&Z, n, n);
         init_sub_matrix(Z, n, n);
     }
-
 
     using namespace std::chrono;    
     high_resolution_clock::time_point start_time = high_resolution_clock::now();
@@ -374,9 +372,17 @@ int main(int argc, char *argv[]) {
     high_resolution_clock::time_point end_time = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
 
+    if (myrank == 0) {
+       delete_2d_array(&X);
+       delete_2d_array(&Y);
+       delete_2d_array(&Z);
+    }
+
     if(myrank == 0) {
         std::cout << "Exectution Time: " << time_span.count() << " seconds.";
         std::cout << std::endl;
     }
+ 
+    MPI_Finalize();
     return 1;
 }
