@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++11
+CXXFLAGS=-std=c++11 -I boost_1_65_1/
 
 all:
 	$(CXX) $(CXXFLAGS) -o graph_generator graph_generator.cpp
