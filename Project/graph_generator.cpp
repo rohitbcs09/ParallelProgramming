@@ -4,6 +4,7 @@ using namespace std;
 class GraphConstructor {
     
     vector<vector<int>> adjacency_list;
+
     long long num_verts = 0;
     long long num_edges = 0;
     long long pres_edges = 0;
@@ -76,10 +77,9 @@ void GraphConstructor :: write_graph_to_file() {
     cout<<"Writing generated file to - " << s <<endl;
 
     // Writing the names of the vertices in the file.
-    /*for(int i = 0; i < num_verts; ++i)
+    for(int i = 0; i < num_verts; ++i)
     {
-        if(first)
-        {
+        if(first) {
                 f<<i;
                 first = false;
         }
@@ -88,19 +88,19 @@ void GraphConstructor :: write_graph_to_file() {
     }
 
     f<<endl<<"#";
-    */    
 
     for(int i = 0; i<num_verts; i++)
     {
         for(int j=0; j< (adjacency_list[i]).size(); j++)
         {
-                int weight = (rand() % max_weight) + 1;
-		if (first) {
-			f<<i<<" "<<adjacency_list[i][j]<<" "<<weight;
-			first = false;
-		} else {
-                	f<<endl<<i<<" "<<adjacency_list[i][j]<<" "<<weight;
-		}
+            int weight = (rand() % max_weight) + 1;
+		    if (first) {
+		    	f<<i<<" "<<adjacency_list[i][j]<<" "<<weight;
+		    	first = false;
+		    } 
+            else {
+                f<<endl<<i<<" "<<adjacency_list[i][j]<<" "<<weight;
+		    }
         }
     }
 
