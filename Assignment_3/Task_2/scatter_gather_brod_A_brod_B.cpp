@@ -238,10 +238,10 @@ void MM_broadcast_A_broadcast_B(int n, int p, int rank) {
 
     MPI_Gatherv(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size,  MPI_INT, mat_Z, send_mat_count, 
                 send_mat_start, sub_mat_type, 0, MPI_COMM_WORLD);
-    if(rank == 0) {
+    /*if(rank == 0) {
         std::cout << "\nMASTER OUTPUT:\n";
         printMatrix(Z, n);
-    }
+    }*/
 
     return;
 }
@@ -252,6 +252,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     int n = atoi(argv[1]);
+
+    __cilkrts_set_param("nworkers", "68");
 
     srand(time(NULL));
     g_seed=rand();
@@ -265,7 +267,7 @@ int main(int argc, char *argv[]) {
     if(myrank == 0) {
         create_2d_array(&X, n, n);
         fillMatrix(X, n);
-        printMatrix(X, n);
+        //printMatrix(X, n);
 
         create_2d_array(&Y, n, n);
         fillMatrix(Y, n);
@@ -287,6 +289,7 @@ int main(int argc, char *argv[]) {
         std::cout << "Exectution Time: " << time_span.count() << " seconds.";
         std::cout << std::endl;
     }
+    MPI_Barrier(MPI_COMM_WORLD);
     return 1;
 }
 
