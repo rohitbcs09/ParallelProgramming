@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include <unordered_map>
-#include <cilk/cilk.h>
-#include <cilk/cilk_api.h>
+//#include <cilk/cilk.h>
+//#include <cilk/cilk_api.h>
 #include <chrono>
 
 using namespace std;
@@ -68,6 +68,7 @@ void Par_Simulate_Priority_CW_BS(int n, std::vector<Edge> &E, std::vector<int> &
 
 int edmonds(vector<Edge>& edgeList, int V, int R) {
     
+    // Parallel QuickSort to sort the weights of graph
     std::sort(edgeList.begin(), edgeList.end());
 
     std::vector<int> Rank(V+1, 0);
@@ -88,7 +89,7 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
     for(int i = 0; i < edgeList.size(); ++i) {
         Edge e(edgeList[i].u, edgeList[i].v, edgeList[i].w);
         if(Rank[e.u] == i) {
-           minInEdge[e.u] = min(minInEdge[e.u], e); 
+           minInEdge[e.u] = e; //min(minInEdge[e.u], e); 
         }
     }
 
@@ -124,8 +125,10 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
     if (cnt == V+1) {
         int result = 0;
         for(Edge e : minInEdge) {
-            std::cout << e.u << " " << e.v << " " << e.w << "\n";
-            result += e.w;
+            if(e.w != INF) {
+                std::cout << e.u << " " << e.v << " " << e.w << "\n";
+                result += e.w;
+            }
         }
         return result;
     }
@@ -133,9 +136,10 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
     int result = 0;
     for (Edge e : minInEdge)
         if (isCycleGroup[group[e.v]]) {
-            /*  && (e.u != 0 && e.v != 0)) { */
-            std::cout << e.u << " " << e.v << " " << e.w << "\n";
-            result += e.w;
+            if(e.w != INF) {
+                std::cout << e.u << " " << e.v << " " << e.w << "\n";
+                result += e.w;
+            }
         }
 
     // form new graph with groups
@@ -184,6 +188,6 @@ int main(int argc, char** argv) {
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
     std::cout << "Running Time: " << time_span.count() << " seconds.\n";
-    printf("%d\n", result);
+    //printf("%d\n", result);
     return 0;
 }

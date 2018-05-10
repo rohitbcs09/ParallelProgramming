@@ -23,7 +23,9 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
 
     for (Edge e : edgeList) {
         minInEdge[e.v] = min(minInEdge[e.v], e);
-    } minInEdge[R] = Edge(-1, R, 0);
+    } 
+    
+    minInEdge[R] = Edge(-1, R, 0);
 
     // assign vertices to their cyclic group
     vector<int> group(V+1, 0);
@@ -57,18 +59,21 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
     if (cnt == V+1) {
         int result = 0;
         for (Edge e : minInEdge) {
-            std::cout << e.u << " " << e.v << " " << e.w << "\n";
-            result += e.w;
+            if(e.w != INF) {
+                std::cout << e.u << " " << e.v << " " << e.w << "\n";
+                result += e.w;
+            }
         }
         return result;
     }
 
     int result = 0;
-    for (Edge e : minInEdge)
+    for (Edge e : minInEdge) {
         if (isCycleGroup[group[e.v]]) {
             std::cout << e.u << " " << e.v << " " << e.w << "\n";
             result += e.w;
         }
+    }
 
     // form new graph with groups
     vector<Edge> n_edgeList;
@@ -117,6 +122,6 @@ int main(int argc, char** argv) {
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
     std::cout << "Running Time: " << time_span.count() << " seconds.\n";
-    printf("%d\n", result);
+    //printf("%d\n", result);
     return 0;
 }

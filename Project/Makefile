@@ -1,5 +1,5 @@
-CXX=icc
-CXXFLAGS=-std=c++11 -I boost_1_65_1/
+CXX=g++
+CXXFLAGS=-std=c++11
 
 all:
 	$(CXX) $(CXXFLAGS) -o graph_generator graph_generator.cpp
@@ -7,6 +7,7 @@ all:
 	$(CXX) $(CXXFLAGS) -o fredman-tarjan fredman-tarjan.cpp
 	$(CXX) $(CXXFLAGS) -o edmonds-algo-iter edmonds-algo-iter.cpp 
 	$(CXX) $(CXXFLAGS) -o edmonds-algo-par edmonds-algo-par.cpp
+	$(CXX) $(CXXFLAGS) -o prim-algo-binary prim-algo-binary.cpp 
 
 clean:
 	rm -rf graph_generator
