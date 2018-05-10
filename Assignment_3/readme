@@ -1,0 +1,7 @@
+How to run ?
+
+1. run make from directory
+
+2. run command :
+   mpirun -n 16 -ppn 68 ./brod_A_brod_B 1024
+        4

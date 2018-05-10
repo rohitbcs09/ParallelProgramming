@@ -53,7 +53,7 @@ void fillMatrix(int **arr, int n) {
     int count = 0;
     for(int i = 0; i<n; ++i) {
         for(int j = 0; j<n; ++j) {
-            arr[i][j] = /*++count;*/ fastrand();
+            arr[i][j] = ++count; //fastrand();
         }
     }
 }
@@ -97,46 +97,12 @@ void Matrix_Multiply(int **X, int **Y, int **Z, int x_row, int x_col,
     }
 }
 
-
-void update_result(int *temp, int rank, int **Z, int n , int p) {
-    int sqrt_p = std::sqrt(p);
-    int proc_mat_size = n / sqrt_p;
-
-    int row = rank / sqrt_p;
-    int col = rank % sqrt_p;
-    int *trav = temp;
-
-    for (int i = row * proc_mat_size; i < row * proc_mat_size + proc_mat_size; ++i) {
-        for (int j = col * proc_mat_size; j < col * proc_mat_size + proc_mat_size; ++j) {
-
-            //std::cout << " i = " << i << " j = " << j << " val = " << *trav;
-            Z[i][j] += *trav;
-            trav++;
-        }
-        //std::cout << "\n";
-    }
-}
-
-int * get_buff_copy(int rank,int  **arr, int size, int procs) {
-    int sqrt_p = std::sqrt(procs);
-    int proc_mat_size = size / sqrt_p;
-
-    int * res = (int *)malloc(proc_mat_size*proc_mat_size*sizeof(int));
-    int *trav = res;
-    int row = rank / sqrt_p;
-    int col = rank % sqrt_p;
-
-    for (int i = row * proc_mat_size; i < row * proc_mat_size + proc_mat_size; ++i) {
-        for (int j = col * proc_mat_size; j < col * proc_mat_size + proc_mat_size; ++j) {
-            *trav = arr[i][j];
-            trav++;
-        }
-    }
-
-    return res;
-}
-
 void MM_broadcast_A_broadcast_B(int n, int p, int rank) {
+    int *mat_X = NULL;
+    int *mat_Y = NULL;
+    int *mat_Z = NULL;
+    int *g_copy_mat = NULL;
+
     int sqrt_p = std::sqrt(p);
     int proc_mat_size = n / sqrt_p;
     int mat_size[2] = {n , n};
@@ -170,59 +136,24 @@ void MM_broadcast_A_broadcast_B(int n, int p, int rank) {
     int send_mat_count[p]; 
     int send_mat_start[p];
 
-
-    MPI_Status x_status[n];
-    MPI_Status y_status[n];
-    MPI_Status z_status[n];
-
-    int x_tag = 40;
-    int y_tag = 41;
-    int z_tag = 42;
-
-
-
     if(rank == 0) {
-
-	for (int i = 0; i < proc_mat_size; ++i) {
-	   for (int j = 0; j < proc_mat_size; ++j) {
-               sub_matrix_X[i][j] = *(*X + i * n + j);
-	       sub_matrix_Y[i][j] = *(*Y + i * n + j);
-	       sub_matrix_Z[i][j] = *(*Z + i * proc_mat_size + j);
-	   }
-	}
-
+        int start = 0;
+        for(int i=0; i<sqrt_p; ++i){
+            for(int j=0; j<sqrt_p; ++j){
+                send_mat_count[start]=1;
+                send_mat_start[start++]= (sqrt_p * proc_mat_size * i) + j;
+                //std::cout << (sqrt_p * proc_mat_size * i) + j << " ";
+            }
+        }
         /*for(int i = 0; i< sqrt_p * sqrt_p; ++i) {
             std::cout << send_mat_start[i] << " ";
         }
         std::cout << "\n";*/
-
-        // send to all processors
-        for (int i = 1; i < sqrt_p * sqrt_p; ++i) {
-            int *sub_X = get_buff_copy(i, X, n, p);
-            MPI_Send(sub_X, proc_mat_size * proc_mat_size, MPI_INT, i, x_tag, MPI_COMM_WORLD);
-
-            int *sub_Y = get_buff_copy(i, Y, n, p);
-            MPI_Send(sub_Y, proc_mat_size * proc_mat_size, MPI_INT, i, y_tag, MPI_COMM_WORLD);
-
-            int *sub_Z = get_buff_copy(i, Z, n, p);
-            MPI_Send(sub_Z, proc_mat_size * proc_mat_size, MPI_INT, i, z_tag, MPI_COMM_WORLD);
-
-            free(sub_X);
-            free(sub_Y);
-            free(sub_Z);
-        }
-
+        mat_X = &(X[0][0]);
+        mat_Y = &(Y[0][0]);
+        mat_Z = &(Z[0][0]);
     }
 
-    if (rank != 0) {
-
-        MPI_Recv(&(sub_matrix_X[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, x_tag, MPI_COMM_WORLD, &x_status[rank]);
-        MPI_Recv(&(sub_matrix_Y[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, y_tag, MPI_COMM_WORLD, &y_status[rank]);
-        MPI_Recv(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, z_tag, MPI_COMM_WORLD, &z_status[rank]);
-    }
-
-
-    /*
     MPI_Scatterv(mat_X, send_mat_count, send_mat_start, sub_mat_type, &(sub_matrix_X[0][0]),
                  proc_mat_size * proc_mat_size, MPI_INT, 0, MPI_COMM_WORLD);
  
@@ -233,8 +164,6 @@ void MM_broadcast_A_broadcast_B(int n, int p, int rank) {
                  proc_mat_size * proc_mat_size, MPI_INT, 0, MPI_COMM_WORLD);
 
     MPI_Barrier(MPI_COMM_WORLD);
-
-    */
           
     /*std::cout << "Rank : " << rank << "\n";
     for(int j = 0; j< proc_mat_size; ++j) {
@@ -283,39 +212,12 @@ void MM_broadcast_A_broadcast_B(int n, int p, int rank) {
     }
 
 
-    int rcv_tag;
-    MPI_Status rcv_status[n];
-
-    if (rank != 0) {
-        MPI_Send(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size, MPI_INT, 0, rcv_tag, MPI_COMM_WORLD);
-    }
-
-    if (rank == 0) {
-        update_result(&(sub_matrix_Z[0][0]), 0, Z, n , p);
-        for (int i = 1; i < sqrt_p * sqrt_p; ++i) {
-            int *temp = (int *)malloc(proc_mat_size*proc_mat_size*sizeof(int));
-            MPI_Recv(temp, proc_mat_size * proc_mat_size, MPI_INT, i, rcv_tag, MPI_COMM_WORLD, &rcv_status[i]);
-            /*
-            std::cout << "rank : " << i  << " TAG - "<< rcv_tag[i] << std::endl;
-            for (int j = 0; j < proc_mat_size * proc_mat_size; ++j) {
-                std::cout << temp[j] << " ";
-            }
-            std::cout << "\n";
-            */
-            update_result(temp, i, Z, n , p);
-            free(temp);
-        }
-    }
-
-    //MPI_Gatherv(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size,  MPI_INT, mat_Z, send_mat_count, 
-    //            send_mat_start, sub_mat_type, 0, MPI_COMM_WORLD);
-   
-    /*
-    if(rank == 0) {
+    MPI_Gatherv(&(sub_matrix_Z[0][0]), proc_mat_size * proc_mat_size,  MPI_INT, mat_Z, send_mat_count, 
+                send_mat_start, sub_mat_type, 0, MPI_COMM_WORLD);
+    /*if(rank == 0) {
         std::cout << "\nMASTER OUTPUT:\n";
         printMatrix(Z, n);
-    }
-    */
+    }*/
 
     return;
 }
@@ -361,9 +263,7 @@ int main(int argc, char *argv[]) {
         std::cout << "Exectution Time: " << time_span.count() << " seconds.";
         std::cout << std::endl;
     }
-
     MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Finalize();
     return 1;
 }
 
