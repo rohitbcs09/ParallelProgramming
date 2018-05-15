@@ -60,7 +60,7 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
         int result = 0;
         for (Edge e : minInEdge) {
             if(e.w != INF) {
-                std::cout << e.u << " " << e.v << " " << e.w << "\n";
+                //std::cout << e.u << " " << e.v << " " << e.w << "\n";
                 result += e.w;
             }
         }
@@ -70,7 +70,7 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
     int result = 0;
     for (Edge e : minInEdge) {
         if (isCycleGroup[group[e.v]]) {
-            std::cout << e.u << " " << e.v << " " << e.w << "\n";
+            //std::cout << e.u << " " << e.v << " " << e.w << "\n";
             result += e.w;
         }
     }

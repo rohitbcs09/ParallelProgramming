@@ -2,8 +2,8 @@
 using namespace std;
  
 #define RUN 5
-#define MAX_VERTICES 50 
-#define MAX_EDGES 100 
+#define MAX_VERTICES 256
+#define MAX_EDGES 65536
 #define MAXWEIGHT 100
  
 int main() {

@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include <unordered_map>
-//#include <cilk/cilk.h>
-//#include <cilk/cilk_api.h>
+#include <cilk/cilk.h>
+#include <cilk/cilk_api.h>
 #include <chrono>
 
 using namespace std;
@@ -28,25 +28,30 @@ void Par_Simulate_Priority_CW_BS(int n, std::vector<Edge> &E, std::vector<int> &
     std::vector<int> md(n+1, 0);
 
     int m = E.size();
-    for(int u = 1; u<=n; ++u) {
+
+    #pragma cilk grainsize = 2048
+    cilk_for(int u = 1; u<=n; ++u) {
         l[u] = 0;
         h[u] = m-1;
     }
 
     for(int k = 0; k < 1 + log2(m); ++k){
-        for(int u = 1; u<=n; ++u) {
+	#pragma cilk grainsize = 2048
+        cilk_for(int u = 1; u<=n; ++u) {
             B[u] = 0;
             lo[u] = l[u];
             hi[u] = h[u];
         }
-        for(int i = 0; i< m; ++i) {
+	#pragma cilk grainsize = 2048
+        cilk_for(int i = 0; i< m; ++i) {
             int u = E[i].u;
             md[u] = (lo[u] + hi[u])/2;
             if( i>=lo[u] && i<=md[u]) {
                 B[u] = 1;
             }
         }
-        for(int i = 0; i< m; ++i) {
+	#pragma cilk grainsize = 2048
+        cilk_for(int i = 0; i< m; ++i) {
             int u = E[i].u;
             md[u] = (lo[u] + hi[u])/2;
             if( B[u] == 1 && i>=lo[u] && i<=md[u]) {
@@ -57,7 +62,8 @@ void Par_Simulate_Priority_CW_BS(int n, std::vector<Edge> &E, std::vector<int> &
                 l[u] = md[u] + 1;
             }
         }
-        for(int i = 0; i<m; ++i) {
+	#pragma cilk grainsize = 2048
+        cilk_for(int i = 0; i<m; ++i) {
             int u = E[i].u;
             if(i==l[u]) {
                 R[u] = i;
@@ -126,7 +132,7 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
         int result = 0;
         for(Edge e : minInEdge) {
             if(e.w != INF) {
-                std::cout << e.u << " " << e.v << " " << e.w << "\n";
+                //std::cout << e.u << " " << e.v << " " << e.w << "\n";
                 result += e.w;
             }
         }
@@ -137,7 +143,7 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
     for (Edge e : minInEdge)
         if (isCycleGroup[group[e.v]]) {
             if(e.w != INF) {
-                std::cout << e.u << " " << e.v << " " << e.w << "\n";
+                //std::cout << e.u << " " << e.v << " " << e.w << "\n";
                 result += e.w;
             }
         }
@@ -158,6 +164,8 @@ int edmonds(vector<Edge>& edgeList, int V, int R) {
 }
 
 int main(int argc, char** argv) {
+
+    __cilkrts_set_param("nworkers", "68");
 
     int V, E, R=1; 
     vector<Edge> edgeList;

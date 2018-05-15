@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
     duration<double> time_span = duration_cast<duration<double>>(end_time - start_time);
     std::cout << "Exectution Time: " << time_span.count() << " seconds.";
     std::cout << std::endl;
-    print_mst_edges();
+    //print_mst_edges();
     return 0;
 }
 

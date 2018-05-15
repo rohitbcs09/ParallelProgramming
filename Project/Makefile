@@ -1,4 +1,4 @@
-CXX=g++
+CXX=icpc
 CXXFLAGS=-std=c++11 -I boost_1_65_1/
 
 all:
